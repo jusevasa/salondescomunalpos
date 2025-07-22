@@ -1,3 +1,35 @@
+---
+alwaysApply: true
+---
+
+# React 19 + TypeScript Patterns
+
+## Component Structure
+- Use function components with TypeScript
+- Props interfaces named `{ComponentName}Props`
+- Export components as default, types as named exports
+
+## Hooks Usage
+- Prefer React Query for server state
+- Use Zustand for complex client state
+- Custom hooks in feature `/hooks` folders
+- Global hooks in `src/hooks/`
+
+## Form Handling
+- React Hook Form + Zod validation
+- Schemas in `src/lib/validations/`
+- Form components in feature `/components`
+
+## Styling
+- Tailwind CSS 4.0 classes
+- shadcn/ui component variants
+- Custom styles in `src/styles/`
+
+## File Naming
+- Components: PascalCase.tsx
+- Hooks: camelCase.ts (useFeatureName)
+- Services: camelCase.ts
+- Types: camelCase.ts or PascalCase.ts
 # React 19 + TypeScript Patterns
 
 ## Component Structure

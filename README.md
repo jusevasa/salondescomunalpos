@@ -1,69 +1,133 @@
-# React + TypeScript + Vite
+# Salón de Comunal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema de gestión de restaurante con autenticación basada en roles usando React 19 + TypeScript + Supabase.
 
-Currently, two official plugins are available:
+## Características
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ✅ Autenticación con Supabase
+- ✅ Gestión de sesiones persistentes
+- ✅ Control de acceso basado en roles (admin/waiter)
+- ✅ Rutas protegidas
+- ✅ Formularios con React Hook Form + Zod
+- ✅ UI moderna con shadcn/ui
 
-## Expanding the ESLint configuration
+## Configuración
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. Variables de Entorno
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Crea un archivo `.env` en la raíz del proyecto:
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Base de Datos
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Ejecuta el archivo `supabase_schema.sql` en tu proyecto de Supabase para crear:
+- Tablas con Row Level Security (RLS)
+- Roles de usuario (admin/waiter)
+- Políticas de seguridad
+- Datos iniciales
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 3. Instalación
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Autenticación
+
+### Roles de Usuario
+
+- **Admin**: Acceso completo al sistema, gestión de usuarios, menú, configuración
+- **Waiter**: Gestión de órdenes y pagos
+
+### Rutas Protegidas
+
+- `/` - Dashboard (requiere autenticación)
+- `/dashboard` - Dashboard principal
+- `/admin` - Panel de administrador (solo admin)
+- `/login` - Página de inicio de sesión
+- `/unauthorized` - Página de acceso denegado
+
+### Uso de Hooks
+
+```tsx
+import { useAuth } from '@/hooks/useAuth'
+import { useRole } from '@/hooks/useRole'
+
+function MyComponent() {
+  const { user, profile, signOut } = useAuth()
+  const { isAdmin, isWaiter, hasRole } = useRole()
+  
+  return (
+    <div>
+      {isAdmin() && <AdminPanel />}
+      {isWaiter() && <WaiterTools />}
+    </div>
+  )
+}
+```
+
+### Componente ProtectedRoute
+
+```tsx
+import ProtectedRoute from '@/router/guards/ProtectedRoute'
+
+// Ruta que requiere autenticación
+<ProtectedRoute>
+  <MyComponent />
+</ProtectedRoute>
+
+// Ruta solo para administradores
+<ProtectedRoute allowedRoles={['admin']}>
+  <AdminComponent />
+</ProtectedRoute>
+
+// Ruta para admin y waiter
+<ProtectedRoute allowedRoles={['admin', 'waiter']}>
+  <RestaurantComponent />
+</ProtectedRoute>
+```
+
+## Arquitectura
+
+### Estructura de Features
+
+```
+src/features/auth/
+├── components/     # LoginForm, etc.
+├── hooks/         # Hooks específicos de auth
+├── services/      # API calls de autenticación
+├── types/         # Tipos TypeScript
+└── index.ts       # Barrel exports
+```
+
+### Configuración Global
+
+```
+src/lib/
+├── auth/          # AuthProvider, servicios
+├── config/        # Configuración Supabase, env
+└── validations/   # Esquemas Zod
+```
+
+## Stack Tecnológico
+
+- **Frontend**: React 19 + TypeScript
+- **Routing**: React Router v7
+- **Estado**: Zustand + TanStack Query
+- **UI**: Tailwind CSS + shadcn/ui
+- **Formularios**: React Hook Form + Zod
+- **Backend**: Supabase (Auth + Database)
+
+## Scripts
+
+```bash
+pnpm dev      # Desarrollo
+pnpm build    # Construcción
+pnpm lint     # Linting
+pnpm preview  # Vista previa
 ```

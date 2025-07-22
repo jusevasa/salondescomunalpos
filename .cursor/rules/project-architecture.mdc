@@ -1,3 +1,56 @@
+---
+alwaysApply: true
+---
+
+# Salón de Comunal - Project Architecture
+
+## Stack
+- React 19 + TypeScript
+- React Router v7
+- Tailwind CSS 4.0
+- shadcn/ui components
+- TanStack Query (React Query)
+- Zustand for state management
+- Zod for validation
+- React Hook Form
+
+## Architecture Pattern: Screaming Architecture
+
+### Feature-Based Structure
+```
+src/features/{feature-name}/
+├── components/     # Feature-specific components
+├── hooks/         # Feature-specific hooks
+├── services/      # API calls and business logic
+├── types/         # TypeScript types
+└── index.ts       # Barrel exports
+```
+
+### Core Infrastructure
+```
+src/lib/
+├── api/           # HTTP client, interceptors
+├── auth/          # Authentication logic
+├── config/        # Environment variables, constants
+├── utils/         # Utility functions
+└── validations/   # Zod schemas
+```
+
+### Global Resources
+```
+src/hooks/         # Reusable hooks across features
+src/components/    # Shared components (ui/, layout/, common/)
+src/pages/         # Page-level components
+src/router/        # Route configuration and guards
+```
+
+## Key Principles
+1. Features are self-contained and domain-focused
+2. Shared logic goes in `/lib` or `/hooks`
+3. UI components follow shadcn/ui patterns
+4. All forms use React Hook Form + Zod
+5. Server state managed by TanStack Query
+6. Client state managed by Zustand when needed
 # Salón de Comunal - Project Architecture
 
 ## Stack
