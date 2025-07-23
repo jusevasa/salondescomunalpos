@@ -10,7 +10,7 @@ export type UserRole = 'admin' | 'waiter'
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid' | 'cancelled'
 
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled'
+export type PaymentStatus = 'pending' | 'completed' | 'paid' | 'cancelled'
 
 export interface Database {
   public: {
