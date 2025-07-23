@@ -25,12 +25,12 @@ export interface Order {
   order_items?: DatabaseOrderItem[]
   // Legacy fields for backward compatibility
   table_number?: number
-  customer_name?: string
+  waiter?: string
   payment_status?: PaymentStatus
 }
 
 export interface OrderItem {
-  id: string
+  id: number
   name: string
   quantity: number
   price: number
@@ -39,16 +39,16 @@ export interface OrderItem {
 }
 
 export interface DatabaseOrderItem {
-  id: string
+  id: number
   quantity: number
   unit_price: number
   subtotal: number
-  menu_items: {
-    id: string
+  menu_items?: {
+    id: number
     name: string
     price: number
     category_id: number
-    menu_categories: {
+    menu_categories?: {
       id: number
       name: string
     }
@@ -56,7 +56,8 @@ export interface DatabaseOrderItem {
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid' | 'cancelled'
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled'
+
+export type PaymentStatus = 'pending' | 'completed' | 'paid' | 'cancelled'
 
 export interface OrderFilters {
   status?: OrderStatus
@@ -73,4 +74,64 @@ export interface OrdersResponse {
   total: number
   page: number
   limit: number
+}
+
+// New payment-related types
+export interface PaymentMethod {
+  id: number
+  name: string
+  code: string
+  active: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Payment {
+  id: number
+  order_id: number
+  payment_method_id: number
+  amount: number
+  tip_amount: number
+  tip_percentage?: number
+  total_paid: number
+  received_amount?: number
+  change_amount: number
+  reference_number?: string
+  status: PaymentStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  payment_method?: PaymentMethod
+}
+
+export interface ProcessPaymentRequest {
+  orderId: number
+  paymentMethodId: number
+  tipAmount?: number
+  tipPercentage?: number
+  receivedAmount?: number
+  notes?: string
+}
+
+export interface PaymentCalculation {
+  orderAmount: number
+  tipAmount: number
+  totalToPay: number
+  receivedAmount: number
+  changeAmount: number
+}
+
+// Order modification types
+export interface OrderItemToRemove {
+  id: number
+  quantity: number
+}
+
+export interface OrderItemToAdd {
+  menu_item_id: number
+  quantity: number
+  unit_price: number
+  cooking_point_id?: number
+  notes?: string
 } 

@@ -1,5 +1,13 @@
 import { supabase } from '@/lib/config/supabase'
-import type {  OrderFilters, OrdersResponse, DatabaseOrderItem } from '../types'
+import type {  
+  OrderFilters, 
+  OrdersResponse, 
+  DatabaseOrderItem, 
+  PaymentMethod, 
+  ProcessPaymentRequest,
+  OrderItemToAdd,
+  Payment
+} from '../types'
 
 export const ordersService = {
   async getTodayOrders(filters?: OrderFilters): Promise<OrdersResponse> {
@@ -65,7 +73,7 @@ export const ordersService = {
         ...order,
         // Legacy compatibility fields
         table_number: order.tables?.number ? parseInt(order.tables.number) : 0,
-        customer_name: order.profiles?.name || 'Cliente',
+        waiter: order.profiles?.name || 'Cliente',
         payment_status: order.paid_amount >= order.total_amount ? 'paid' as const : 'pending' as const,
         items: (order.order_items || []).map((item: DatabaseOrderItem) => ({
           id: item.id,
@@ -89,7 +97,7 @@ export const ordersService = {
     }
   },
 
-  subscribeToOrders(callback: (payload: any) => void) {
+  subscribeToOrders(callback: (payload: { eventType: string; new: any; old: any }) => void) {
     console.log('Setting up orders subscription...')
     
     const channel = supabase
@@ -175,5 +183,259 @@ export const ordersService = {
     }
 
     return data
+  },
+
+  async updateOrderItem(orderItemId: number, newQuantity: number) {
+    try {
+      // Get the current order item
+      const { data: orderItem, error: fetchError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('id', orderItemId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      if (newQuantity <= 0) {
+        // Remove the item completely if quantity is 0 or less
+        const { error: deleteError } = await supabase
+          .from('order_items')
+          .delete()
+          .eq('id', orderItemId)
+
+        if (deleteError) throw deleteError
+      } else {
+        // Update the quantity
+        const newSubtotal = newQuantity * orderItem.unit_price
+
+        const { error: updateError } = await supabase
+          .from('order_items')
+          .update({
+            quantity: newQuantity,
+            subtotal: newSubtotal,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderItemId)
+
+        if (updateError) throw updateError
+      }
+
+      // Recalculate order totals
+      await this.recalculateOrderTotals(orderItem.order_id)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error updating order item:', error)
+      throw error
+    }
+  },
+
+  async removeOrderItem(orderItemId: number, quantityToRemove: number) {
+    try {
+      // Get the current order item
+      const { data: orderItem, error: fetchError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('id', orderItemId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      if (orderItem.quantity <= quantityToRemove) {
+        // Remove the item completely
+        const { error: deleteError } = await supabase
+          .from('order_items')
+          .delete()
+          .eq('id', orderItemId)
+
+        if (deleteError) throw deleteError
+      } else {
+        // Update the quantity
+        const newQuantity = orderItem.quantity - quantityToRemove
+        const newSubtotal = newQuantity * orderItem.unit_price
+
+        const { error: updateError } = await supabase
+          .from('order_items')
+          .update({
+            quantity: newQuantity,
+            subtotal: newSubtotal,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderItemId)
+
+        if (updateError) throw updateError
+      }
+
+      // Recalculate order totals
+      await this.recalculateOrderTotals(orderItem.order_id)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error removing order item:', error)
+      throw error
+    }
+  },
+
+  async addOrderItem(orderItem: OrderItemToAdd & { order_id: number }) {
+    try {
+      const subtotal = orderItem.quantity * orderItem.unit_price
+
+      const { data, error } = await supabase
+        .from('order_items')
+        .insert({
+          ...orderItem,
+          subtotal,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Recalculate order totals
+      await this.recalculateOrderTotals(orderItem.order_id)
+
+      return data
+    } catch (error) {
+      console.error('Error adding order item:', error)
+      throw error
+    }
+  },
+
+  async recalculateOrderTotals(orderId: number) {
+    try {
+      // Get all order items
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('subtotal')
+        .eq('order_id', orderId)
+
+      if (itemsError) throw itemsError
+
+      const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0)
+      const taxAmount = subtotal * 0.08 // 8% tax
+      const totalAmount = subtotal + taxAmount
+
+      // Update order totals
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          subtotal,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
+          grand_total: totalAmount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+
+      if (updateError) throw updateError
+
+      return { subtotal, taxAmount, totalAmount }
+    } catch (error) {
+      console.error('Error recalculating order totals:', error)
+      throw error
+    }
   }
-} 
+}
+
+export const paymentService = {
+  async getPaymentMethods(): Promise<PaymentMethod[]> {
+    try {
+      const { data, error } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('active', true)
+        .order('display_order')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching payment methods:', error)
+      throw error
+    }
+  },
+
+  async processPayment(request: ProcessPaymentRequest): Promise<Payment> {
+    try {
+      // Get order details
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', request.orderId)
+        .single()
+
+      if (orderError) throw orderError
+
+      // Calculate payment details
+      let tipAmount = 0
+      if (request.tipPercentage) {
+        tipAmount = (order.total_amount * request.tipPercentage) / 100
+      } else if (request.tipAmount) {
+        tipAmount = request.tipAmount
+      }
+
+      const totalToPay = order.total_amount + tipAmount
+      const changeAmount = request.receivedAmount ? Math.max(0, request.receivedAmount - totalToPay) : 0
+
+      // Create payment record
+      const paymentData = {
+        order_id: request.orderId,
+        payment_method_id: request.paymentMethodId,
+        amount: order.total_amount,
+        tip_amount: tipAmount,
+        tip_percentage: request.tipPercentage,
+        total_paid: totalToPay,
+        received_amount: request.receivedAmount,
+        change_amount: changeAmount,
+        status: 'completed' as const,
+        notes: request.notes
+      }
+
+      const { data: payment, error: paymentError } = await supabase
+        .from('payments')
+        .insert(paymentData)
+        .select()
+        .single()
+
+      if (paymentError) throw paymentError
+
+      // Update order with payment info
+      const { error: orderUpdateError } = await supabase
+        .from('orders')
+        .update({
+          tip_amount: tipAmount,
+          grand_total: totalToPay,
+          paid_amount: totalToPay,
+          change_amount: changeAmount,
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', request.orderId)
+
+      if (orderUpdateError) throw orderUpdateError
+
+      return payment
+    } catch (error) {
+      console.error('Error processing payment:', error)
+      throw error
+    }
+  },
+
+  async getOrderPayments(orderId: number): Promise<Payment[]> {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          payment_method:payment_methods(*)
+        `)
+        .eq('order_id', orderId)
+        .order('created_at')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching order payments:', error)
+      throw error
+    }
+  }
+}

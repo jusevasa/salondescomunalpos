@@ -3,11 +3,16 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ProtectedRoute from '@/router/guards/ProtectedRoute'
+import AdminLayout from '@/components/layout/AdminLayout'
 import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import UnauthorizedPage from '@/pages/UnauthorizedPage'
 import AdminOrdersPage from '@/pages/AdminOrdersPage'
+import AdminDashboardPage from '@/pages/AdminDashboardPage'
+import AdminMenuPage from '@/pages/AdminMenuPage'
+import AdminTablesPage from '@/pages/AdminTablesPage'
 import './index.css'
+import { ToastProvider } from './components/ui/toast'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,10 +44,9 @@ const router = createBrowserRouter([
     path: '/admin',
     element: (
       <ProtectedRoute allowedRoles={['admin']}>
-        <div className="p-8 text-center">
-          <h1 className="text-2xl font-bold">Panel de Administrador</h1>
-          <p>Solo los administradores pueden acceder aquí.</p>
-        </div>
+        <AdminLayout>
+          <AdminDashboardPage />
+        </AdminLayout>
       </ProtectedRoute>
     ),
   },
@@ -50,7 +54,29 @@ const router = createBrowserRouter([
     path: '/admin/orders',
     element: (
       <ProtectedRoute allowedRoles={['admin']}>
-        <AdminOrdersPage />
+        <AdminLayout>
+          <AdminOrdersPage />
+        </AdminLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/menu',
+    element: (
+      <ProtectedRoute allowedRoles={['admin']}>
+        <AdminLayout>
+          <AdminMenuPage />
+        </AdminLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/tables',
+    element: (
+      <ProtectedRoute allowedRoles={['admin']}>
+        <AdminLayout>
+          <AdminTablesPage />
+        </AdminLayout>
       </ProtectedRoute>
     ),
   },
@@ -66,8 +92,10 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ToastProvider>
   </StrictMode>
 )

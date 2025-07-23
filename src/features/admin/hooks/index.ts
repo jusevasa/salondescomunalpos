@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { ordersService } from '../services'
-import type { OrderFilters } from '../types'
+import { ordersService, paymentService } from '../services'
+import type { OrderFilters, ProcessPaymentRequest, OrderItemToAdd } from '../types'
 
 export const useOrders = (filters?: OrderFilters) => {
   return useQuery({
@@ -53,4 +53,84 @@ export const useCreateTestOrder = () => {
       console.error('❌ Error creating test order:', error)
     }
   })
-} 
+}
+
+// Payment hooks
+export const usePaymentMethods = () => {
+  return useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: paymentService.getPaymentMethods,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  })
+}
+
+export const useProcessPayment = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (request: ProcessPaymentRequest) => paymentService.processPayment(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      console.log('✅ Payment processed successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error processing payment:', error)
+    }
+  })
+}
+
+export const useOrderPayments = (orderId: number) => {
+  return useQuery({
+    queryKey: ['order-payments', orderId],
+    queryFn: () => paymentService.getOrderPayments(orderId),
+    enabled: !!orderId,
+  })
+}
+
+export const useUpdateOrderItem = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ orderItemId, quantity }: { orderItemId: number; quantity: number }) => 
+      ordersService.updateOrderItem(orderItemId, quantity),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      console.log('✅ Order item updated successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error updating order item:', error)
+    }
+  })
+}
+
+export const useRemoveOrderItem = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ orderItemId, quantity }: { orderItemId: number; quantity: number }) => 
+      ordersService.removeOrderItem(orderItemId, quantity),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      console.log('✅ Order item removed successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error removing order item:', error)
+    }
+  })
+}
+
+export const useAddOrderItem = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (orderItem: OrderItemToAdd & { order_id: number }) => 
+      ordersService.addOrderItem(orderItem),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      console.log('✅ Order item added successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error adding order item:', error)
+    }
+  })
+}

@@ -2,14 +2,13 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { OrdersTable, useOrders, useOrdersSubscription, useCreateTestOrder } from '@/features/admin'
+import { OrdersTable, useOrders, useOrdersSubscription } from '@/features/admin'
 import type { OrderFilters } from '@/features/admin'
 
 export default function AdminOrdersPage() {
   const [filters, setFilters] = useState<OrderFilters>({})
   const { data: ordersData, isLoading, error } = useOrders(filters)
-  const createTestOrder = useCreateTestOrder()
-  
+
   useOrdersSubscription()
 
   const orders = ordersData?.orders || []
@@ -17,9 +16,6 @@ export default function AdminOrdersPage() {
   const paidOrders = orders.filter(order => order.payment_status === 'paid')
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total_amount, 0)
 
-  const handleCreateTestOrder = () => {
-    createTestOrder.mutate()
-  }
 
   if (error) {
     return (
@@ -55,24 +51,6 @@ export default function AdminOrdersPage() {
           <p className="text-muted-foreground">
             Gestiona las órdenes y pagos pendientes
           </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button 
-            onClick={handleCreateTestOrder}
-            disabled={createTestOrder.isPending}
-            variant="outline"
-            size="sm"
-          >
-            {createTestOrder.isPending ? 'Creando...' : 'Crear Test'}
-          </Button>
-          <Badge variant="outline" className="w-fit">
-            {new Date().toLocaleDateString('es-CO', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </Badge>
         </div>
       </div>
 
