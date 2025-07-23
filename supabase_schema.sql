@@ -311,3 +311,119 @@ INSERT INTO sides (name, display_order) VALUES
 ('Arroz', 3),
 ('Yuca', 4),
 ('Plátano', 5); 
+
+-- OPCIÓN B: Versión completa con fix para los tipos
+
+-- 1. Crear tabla de estaciones de impresión
+CREATE TABLE print_stations (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(20) NOT NULL UNIQUE,
+  printer_ip VARCHAR(45),
+  active BOOLEAN DEFAULT true,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 2. Crear índices
+CREATE INDEX idx_print_stations_code ON print_stations(code);
+CREATE INDEX idx_print_stations_active ON print_stations(active);
+
+-- 3. Agregar columna a menu_categories
+ALTER TABLE menu_categories 
+ADD COLUMN print_station_id INTEGER NOT NULL DEFAULT 1;
+
+CREATE INDEX idx_menu_categories_print_station_id ON menu_categories(print_station_id);
+
+-- 4. Primero, verificar si hay datos en orders y hacer backup si es necesario
+-- Si la tabla orders está vacía, podemos cambiar el tipo directamente
+-- Si tiene datos, necesitamos migrar los datos primero
+
+-- Opción 4A: Si orders está vacía o quieres recrear la FK
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_profile_id_fkey;
+ALTER TABLE orders ALTER COLUMN profile_id TYPE UUID USING profile_id::text::uuid;
+
+-- 5. Crear tabla order_prints con UUID
+CREATE TABLE order_prints (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL,
+  print_station_id INTEGER NOT NULL,
+  printed_at TIMESTAMP,
+  printed_by UUID, -- UUID para coincidir con auth
+  print_count INTEGER DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'printed', 'error')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 6. Crear índices para order_prints
+CREATE INDEX idx_order_prints_order_id ON order_prints(order_id);
+CREATE INDEX idx_order_prints_print_station_id ON order_prints(print_station_id);
+CREATE INDEX idx_order_prints_status ON order_prints(status);
+CREATE INDEX idx_order_prints_printed_at ON order_prints(printed_at);
+
+-- 7. Crear foreign keys
+ALTER TABLE menu_categories 
+ADD CONSTRAINT fk_menu_categories_print_station_id 
+FOREIGN KEY (print_station_id) REFERENCES print_stations(id);
+
+-- Recrear la FK de orders a profiles con UUID
+ALTER TABLE orders 
+ADD CONSTRAINT fk_orders_profile_id 
+FOREIGN KEY (profile_id) REFERENCES profiles(id);
+
+ALTER TABLE order_prints 
+ADD CONSTRAINT fk_order_prints_order_id 
+FOREIGN KEY (order_id) REFERENCES orders(id);
+
+ALTER TABLE order_prints 
+ADD CONSTRAINT fk_order_prints_print_station_id 
+FOREIGN KEY (print_station_id) REFERENCES print_stations(id);
+
+ALTER TABLE order_prints 
+ADD CONSTRAINT fk_order_prints_printed_by 
+FOREIGN KEY (printed_by) REFERENCES profiles(id);
+
+-- 8. Habilitar RLS
+ALTER TABLE print_stations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_prints ENABLE ROW LEVEL SECURITY;
+
+-- 9. Políticas para print_stations
+CREATE POLICY "print_stations_select_policy" ON print_stations
+  FOR SELECT 
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "print_stations_insert_policy" ON print_stations
+  FOR INSERT 
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "print_stations_update_policy" ON print_stations
+  FOR UPDATE 
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "print_stations_delete_policy" ON print_stations
+  FOR DELETE 
+  USING (auth.role() = 'authenticated');
+
+-- 10. Políticas para order_prints
+CREATE POLICY "order_prints_select_policy" ON order_prints
+  FOR SELECT 
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "order_prints_insert_policy" ON order_prints
+  FOR INSERT 
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "order_prints_update_policy" ON order_prints
+  FOR UPDATE 
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "order_prints_delete_policy" ON order_prints
+  FOR DELETE 
+  USING (auth.role() = 'authenticated');
+
+-- 11. Insertar datos de ejemplo
+INSERT INTO print_stations (name, code, printer_ip, display_order) VALUES 
+('Cocina', 'KITCHEN', '192.168.1.100', 1),
+('Bar', 'BAR', '192.168.1.101', 2);
