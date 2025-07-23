@@ -14,10 +14,10 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string>('')
-  const { signIn, isAuthenticated } = useAuth()
+  const { signIn, isAuthenticated, profile } = useAuth()
   const location = useLocation()
 
-  const from = location.state?.from?.pathname || '/dashboard'
+  const from = location.state?.from?.pathname || '/'
 
   const {
     register,
@@ -28,6 +28,10 @@ export default function LoginForm() {
   })
 
   if (isAuthenticated) {
+    if (profile?.role === 'admin') {
+      return <Navigate to="/admin/orders" replace />
+    }
+
     return <Navigate to={from} replace />
   }
 
@@ -58,7 +62,7 @@ export default function LoginForm() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

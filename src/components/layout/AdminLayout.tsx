@@ -24,7 +24,6 @@ import {
   LogOut,
   ChefHat,
   Receipt,
-  Home
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -33,11 +32,6 @@ interface AdminLayoutProps {
 }
 
 const menuItems = [
-  {
-    title: "Dashboard",
-    url: "/admin",
-    icon: Home,
-  },
   {
     title: "Órdenes",
     url: "/admin/orders",
@@ -78,9 +72,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex min-h-screen w-full">
         <Sidebar>
           <SidebarHeader className="border-b border-sidebar-border">
-            <div className="flex items-center gap-2 px-4 py-2">
+            <div className="flex items-center gap-2 px-4 py-1.5">
               <ChefHat className="h-6 w-6" />
-              <span className="font-semibold text-lg">Salón de Comunal</span>
+              <span className="font-semibold text-lg">Salóndescomunal</span>
             </div>
           </SidebarHeader>
           

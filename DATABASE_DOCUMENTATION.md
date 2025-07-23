@@ -1,4 +1,4 @@
-# Documentación de Base de Datos - Salon de Comunal
+# Documentación de Base de Datos - Salóndescomunal
 
 ## Resumen
 Sistema de gestión de restaurante con roles de usuario (admin/waiter), gestión de menú, órdenes y pagos.

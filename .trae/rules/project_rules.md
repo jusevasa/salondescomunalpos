@@ -1,4 +1,4 @@
-# Salón de Comunal - Project Architecture
+# Salóndescomunal - Project Architecture
 
 ## Stack
 - React 19 + TypeScript
@@ -47,7 +47,7 @@ src/router/        # Route configuration and guards
 4. All forms use React Hook Form + Zod
 5. Server state managed by TanStack Query
 6. Client state managed by Zustand when needed
-# Salón de Comunal - Project Architecture
+# Salóndescomunal - Project Architecture
 
 ## Stack
 - React 19 + TypeScript
