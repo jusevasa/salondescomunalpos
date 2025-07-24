@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { ordersService, paymentService } from '../services'
-import type { OrderFilters, ProcessPaymentRequest, OrderItemToAdd } from '../types'
+import { ordersService, paymentService, tablesService } from '../services'
+import type { OrderFilters, ProcessPaymentRequest, OrderItemToAdd, TableFilters, TableFormData } from '../types'
 
 export const useOrders = (filters?: OrderFilters) => {
   return useQuery({
@@ -131,6 +131,88 @@ export const useAddOrderItem = () => {
     },
     onError: (error) => {
       console.error('❌ Error adding order item:', error)
+    }
+  })
+}
+
+// Tables hooks
+export const useTables = (filters?: TableFilters) => {
+  return useQuery({
+    queryKey: ['tables', filters],
+    queryFn: () => tablesService.getTables(filters),
+    staleTime: 10000,
+    retry: 2,
+    retryDelay: 1000,
+  })
+}
+
+export const useTablesSubscription = () => {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    console.log('Setting up tables subscription hook...')
+    
+    const unsubscribe = tablesService.subscribeToTables((payload) => {
+      console.log('Received tables real-time update:', payload)
+      
+      // Invalidate and refetch tables data
+      queryClient.invalidateQueries({ 
+        queryKey: ['tables'],
+        exact: false 
+      })
+      
+      console.log('✅ Tables data refreshed due to real-time update')
+    })
+
+    return () => {
+      console.log('Cleaning up tables subscription...')
+      unsubscribe()
+    }
+  }, [queryClient])
+}
+
+export const useCreateTable = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (tableData: TableFormData) => tablesService.createTable(tableData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+      console.log('✅ Table created successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error creating table:', error)
+    }
+  })
+}
+
+export const useUpdateTable = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<TableFormData> }) => 
+      tablesService.updateTable(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+      console.log('✅ Table updated successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error updating table:', error)
+    }
+  })
+}
+
+export const useDeleteTable = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: number) => tablesService.deleteTable(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+      console.log('✅ Table deleted successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error deleting table:', error)
     }
   })
 }

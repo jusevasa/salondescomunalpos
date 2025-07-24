@@ -6,7 +6,11 @@ import type {
   PaymentMethod, 
   ProcessPaymentRequest,
   OrderItemToAdd,
-  Payment
+  Payment,
+  Table,
+  TableFormData,
+  TableFilters,
+  TablesResponse
 } from '../types'
 
 export const ordersService = {
@@ -436,6 +440,138 @@ export const paymentService = {
     } catch (error) {
       console.error('Error fetching order payments:', error)
       throw error
+    }
+  }
+}
+
+export const tablesService = {
+  async getTables(filters?: TableFilters): Promise<TablesResponse> {
+    try {
+      let query = supabase
+        .from('tables')
+        .select('*', { count: 'exact' })
+        .order('number', { ascending: true })
+
+      if (filters?.active !== undefined) {
+        query = query.eq('active', filters.active)
+      }
+
+      if (filters?.search) {
+        query = query.or(`number.ilike.%${filters.search}%`)
+      }
+
+      const { data, error, count } = await query
+
+      if (error) {
+        console.error('Error fetching tables:', error)
+        throw new Error(`Error al cargar las mesas: ${error.message}`)
+      }
+
+      return {
+        tables: data || [],
+        total: count || 0,
+        page: 1,
+        limit: 50
+      }
+    } catch (error) {
+      console.error('Service error:', error)
+      throw error
+    }
+  },
+
+  async createTable(tableData: TableFormData): Promise<Table> {
+    try {
+      const { data, error } = await supabase
+        .from('tables')
+        .insert(tableData)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating table:', error)
+        throw new Error(`Error al crear la mesa: ${error.message}`)
+      }
+
+      return data
+    } catch (error) {
+      console.error('Service error:', error)
+      throw error
+    }
+  },
+
+  async updateTable(id: number, tableData: Partial<TableFormData>): Promise<Table> {
+    try {
+      const { data, error } = await supabase
+        .from('tables')
+        .update({
+          ...tableData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating table:', error)
+        throw new Error(`Error al actualizar la mesa: ${error.message}`)
+      }
+
+      return data
+    } catch (error) {
+      console.error('Service error:', error)
+      throw error
+    }
+  },
+
+  async deleteTable(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('tables')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Error deleting table:', error)
+        throw new Error(`Error al eliminar la mesa: ${error.message}`)
+      }
+    } catch (error) {
+      console.error('Service error:', error)
+      throw error
+    }
+  },
+
+  subscribeToTables(callback: (payload: { eventType: string; new: any; old: any }) => void) {
+    console.log('Setting up tables subscription...')
+    
+    const channel = supabase
+      .channel('tables_realtime', {
+        config: {
+          broadcast: { self: true },
+          presence: { key: 'admin_user' }
+        }
+      })
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tables'
+        },
+        (payload) => {
+          console.log('Tables update received:', payload)
+          callback(payload)
+        }
+      )
+      .subscribe((status) => {
+        console.log('Tables subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to tables channel')
+        }
+      })
+
+    return () => {
+      console.log('Unsubscribing from tables channel...')
+      supabase.removeChannel(channel)
     }
   }
 }

@@ -2,7 +2,9 @@
 export { 
   OrdersTable, 
   PaymentDialog, 
-  OrderEditDialog 
+  OrderEditDialog,
+  TablesTable,
+  TableFormDialog
 } from './components'
 
 // Hooks
@@ -14,11 +16,16 @@ export {
   useProcessPayment,
   useOrderPayments,
   useRemoveOrderItem,
-  useAddOrderItem
+  useAddOrderItem,
+  useTables,
+  useTablesSubscription,
+  useCreateTable,
+  useUpdateTable,
+  useDeleteTable
 } from './hooks'
 
 // Services
-export { ordersService, paymentService } from './services'
+export { ordersService, paymentService, tablesService } from './services'
 
 // Types
 export type {
@@ -31,5 +38,9 @@ export type {
   ProcessPaymentRequest,
   PaymentCalculation,
   OrderItemToAdd,
-  OrderItemToRemove
-} from './types' 
+  OrderItemToRemove,
+  Table,
+  TableFormData,
+  TableFilters,
+  TablesResponse
+} from './types'

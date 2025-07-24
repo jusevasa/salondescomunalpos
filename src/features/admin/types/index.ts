@@ -134,4 +134,32 @@ export interface OrderItemToAdd {
   unit_price: number
   cooking_point_id?: number
   notes?: string
-} 
+}
+
+// Tables management types
+export interface Table {
+  id: number
+  number: string
+  capacity: number
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface TableFormData {
+  number: string
+  capacity: number
+  active: boolean
+}
+
+export interface TableFilters {
+  active?: boolean
+  search?: string
+}
+
+export interface TablesResponse {
+  tables: Table[]
+  total: number
+  page: number
+  limit: number
+}

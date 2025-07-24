@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ProtectedRoute from '@/router/guards/ProtectedRoute'
 import AdminLayout from '@/components/layout/AdminLayout'
@@ -24,6 +24,10 @@ const queryClient = new QueryClient({
 })
 
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Navigate to="/login" replace />,
+  },
   {
     path: '/login',
     element: <LoginPage />,
