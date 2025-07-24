@@ -58,11 +58,12 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
   
   // Calculate totals
   const orderAmount = order?.total_amount || 0
+  const subtotalAmount = order?.subtotal || 0
   const tipPercentage = watchedValues.tipPercentage || 0
   const tipAmount = watchedValues.tipAmount || 0
   const receivedAmount = watchedValues.receivedAmount || 0
   
-  const calculatedTipAmount = tipMode === 'percentage' ? (orderAmount * tipPercentage) / 100 : tipAmount
+  const calculatedTipAmount = tipMode === 'percentage' ? (subtotalAmount * tipPercentage) / 100 : tipAmount
   const totalToPay = orderAmount + calculatedTipAmount
   const changeAmount = Math.max(0, receivedAmount - totalToPay)
 
@@ -363,4 +364,4 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
       </DialogContent>
     </Dialog>
   )
-} 
+}
