@@ -46,6 +46,7 @@ CREATE TABLE menu_items (
     author VARCHAR(255) NOT NULL,
     has_cooking_point BOOLEAN DEFAULT false,
     has_sides BOOLEAN DEFAULT false,
+    max_sides_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -68,7 +69,6 @@ CREATE TABLE item_sides (
     id SERIAL PRIMARY KEY,
     menu_item_id INTEGER NOT NULL REFERENCES menu_items(id),
     side_id INTEGER NOT NULL REFERENCES sides(id),
-    max_quantity INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
