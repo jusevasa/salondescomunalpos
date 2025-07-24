@@ -163,3 +163,35 @@ export interface TablesResponse {
   page: number
   limit: number
 }
+
+// Reports types
+export interface ReportsFilters {
+  date_from: string
+  date_to: string
+}
+
+export interface CategorySalesReport {
+  category_id: number
+  category_name: string
+  total_amount: number
+  total_quantity: number
+  items_count: number
+}
+
+export interface AuthorSalesReport {
+  author: string
+  category_name: string
+  total_amount: number
+  total_quantity: number
+  items_count: number
+}
+
+export interface SalesReportData {
+  total_categories_amount: number
+  total_tips: number
+  total_revenue: number
+  categories_sales: CategorySalesReport[]
+  authors_sales: AuthorSalesReport[]
+  date_from: string
+  date_to: string
+}

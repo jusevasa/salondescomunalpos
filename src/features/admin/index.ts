@@ -4,7 +4,8 @@ export {
   PaymentDialog, 
   OrderEditDialog,
   TablesTable,
-  TableFormDialog
+  TableFormDialog,
+  ReportsTable
 } from './components'
 
 // Menu Components

@@ -10,7 +10,11 @@ import type {
   Table,
   TableFormData,
   TableFilters,
-  TablesResponse
+  TablesResponse,
+  ReportsFilters,
+  SalesReportData,
+  CategorySalesReport,
+  AuthorSalesReport
 } from '../types'
 
 export const ordersService = {
@@ -101,7 +105,7 @@ export const ordersService = {
     }
   },
 
-  subscribeToOrders(callback: (payload: { eventType: string; new: any; old: any }) => void) {
+  subscribeToOrders(callback: (payload: { eventType: string; new: unknown; old: unknown }) => void) {
     console.log('Setting up orders subscription...')
     
     const channel = supabase
@@ -540,7 +544,7 @@ export const tablesService = {
     }
   },
 
-  subscribeToTables(callback: (payload: { eventType: string; new: any; old: any }) => void) {
+  subscribeToTables(callback: (payload: { eventType: string; new: unknown; old: unknown }) => void) {
     console.log('Setting up tables subscription...')
     
     const channel = supabase
@@ -572,6 +576,160 @@ export const tablesService = {
     return () => {
       console.log('Unsubscribing from tables channel...')
       supabase.removeChannel(channel)
+    }
+  }
+}
+
+export const reportsService = {
+  async getSalesReport(filters: ReportsFilters): Promise<SalesReportData> {
+    try {
+      const { date_from, date_to } = filters
+
+      // Get orders within date range with their items and categories
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          total_amount,
+          tip_amount,
+          grand_total,
+          created_at,
+          order_items (
+            id,
+            quantity,
+            unit_price,
+            subtotal,
+            menu_items (
+              id,
+              name,
+              author,
+              category_id,
+              menu_categories (
+                id,
+                name
+              )
+            )
+          )
+        `)
+        .gte('created_at', date_from)
+        .lte('created_at', date_to)
+        .eq('status', 'paid')
+
+      if (ordersError) {
+        console.error('Error fetching orders for reports:', ordersError)
+        throw new Error(`Error al cargar los datos de reportes: ${ordersError.message}`)
+      }
+
+      const orders = ordersData || []
+
+      // Calculate totals
+      const totalTips = orders.reduce((sum, order) => sum + (order.tip_amount || 0), 0)
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.grand_total || 0), 0)
+      const totalCategoriesAmount = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+
+      // Calculate categories sales
+      const categoriesMap = new Map<number, CategorySalesReport>()
+      
+      orders.forEach(order => {
+        const orderItems = order.order_items as unknown[]
+        orderItems?.forEach((item: unknown) => {
+          const orderItem = item as {
+            id: number
+            quantity: number
+            unit_price: number
+            subtotal: number
+            menu_items?: {
+              id: number
+              name: string
+              author: string
+              category_id: number
+              menu_categories?: {
+                id: number
+                name: string
+              }
+            }
+          }
+          
+          const menuItem = orderItem.menu_items
+          const categoryId = menuItem?.category_id
+          const categoryName = menuItem?.menu_categories?.name
+          
+          if (categoryId && categoryName) {
+            const existing = categoriesMap.get(categoryId) || {
+              category_id: categoryId,
+              category_name: categoryName,
+              total_amount: 0,
+              total_quantity: 0,
+              items_count: 0
+            }
+
+            existing.total_amount += orderItem.subtotal
+            existing.total_quantity += orderItem.quantity
+            existing.items_count += 1
+
+            categoriesMap.set(categoryId, existing)
+          }
+        })
+      })
+
+      // Calculate authors sales by category
+      const authorsMap = new Map<string, AuthorSalesReport>()
+      
+      orders.forEach(order => {
+        const orderItems = order.order_items as unknown[]
+        orderItems?.forEach((item: unknown) => {
+          const orderItem = item as {
+            id: number
+            quantity: number
+            unit_price: number
+            subtotal: number
+            menu_items?: {
+              id: number
+              name: string
+              author: string
+              category_id: number
+              menu_categories?: {
+                id: number
+                name: string
+              }
+            }
+          }
+          
+          const menuItem = orderItem.menu_items
+          const author = menuItem?.author
+          const categoryName = menuItem?.menu_categories?.name
+          
+          if (author && categoryName) {
+            const key = `${author}-${categoryName}`
+            const existing = authorsMap.get(key) || {
+              author,
+              category_name: categoryName,
+              total_amount: 0,
+              total_quantity: 0,
+              items_count: 0
+            }
+
+            existing.total_amount += orderItem.subtotal
+            existing.total_quantity += orderItem.quantity
+            existing.items_count += 1
+
+            authorsMap.set(key, existing)
+          }
+        })
+      })
+
+      return {
+        total_categories_amount: totalCategoriesAmount,
+        total_tips: totalTips,
+        total_revenue: totalRevenue,
+        categories_sales: Array.from(categoriesMap.values()).sort((a, b) => b.total_amount - a.total_amount),
+        authors_sales: Array.from(authorsMap.values()).sort((a, b) => b.total_amount - a.total_amount),
+        date_from,
+        date_to
+      }
+    } catch (error) {
+      console.error('Service error:', error)
+      throw error
     }
   }
 }

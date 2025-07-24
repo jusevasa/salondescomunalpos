@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { ordersService, paymentService, tablesService } from '../services'
-import type { OrderFilters, ProcessPaymentRequest, OrderItemToAdd, TableFilters, TableFormData } from '../types'
+import { ordersService, paymentService, tablesService, reportsService } from '../services'
+import type { OrderFilters, ProcessPaymentRequest, OrderItemToAdd, TableFilters, TableFormData, ReportsFilters } from '../types'
 
 export const useOrders = (filters?: OrderFilters) => {
   return useQuery({
@@ -214,5 +214,15 @@ export const useDeleteTable = () => {
     onError: (error) => {
       console.error('❌ Error deleting table:', error)
     }
+  })
+}
+
+// Reports hooks
+export const useSalesReport = (filters: ReportsFilters) => {
+  return useQuery({
+    queryKey: ['sales-report', filters],
+    queryFn: () => reportsService.getSalesReport(filters),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!(filters.date_from && filters.date_to),
   })
 }
