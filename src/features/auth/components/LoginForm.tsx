@@ -32,6 +32,10 @@ export default function LoginForm() {
       return <Navigate to="/admin/orders" replace />
     }
 
+    if (profile?.role === 'waiter') {
+      return <Navigate to="/waiter/tables" replace />
+    }
+
     return <Navigate to={from} replace />
   }
 

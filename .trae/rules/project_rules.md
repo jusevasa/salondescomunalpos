@@ -96,3 +96,4 @@ src/router/        # Route configuration and guards
 4. All forms use React Hook Form + Zod
 5. Server state managed by TanStack Query
 6. Client state managed by Zustand when needed
+7. Use allways pnpm

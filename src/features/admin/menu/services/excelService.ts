@@ -123,7 +123,7 @@ class ExcelService {
   }
 
   // Generar plantilla para importación
-  async downloadTemplate(categories: MenuCategory[], sides: Side[], cookingPoints: CookingPoint[]): Promise<void> {
+  async downloadTemplate(categories: MenuCategory[]): Promise<void> {
     const workbook = XLSX.utils.book_new()
 
     // Hoja principal: Plantilla de Items
@@ -164,16 +164,6 @@ class ExcelService {
     const categoriesRef = categories.map(cat => ({ 'Categorías Disponibles': cat.name }))
     const categoriesSheet = XLSX.utils.json_to_sheet(categoriesRef)
     XLSX.utils.book_append_sheet(workbook, categoriesSheet, 'Categorías')
-
-    // Hoja de referencia: Acompañamientos disponibles
-    const sidesRef = sides.map(side => ({ 'Acompañamientos Disponibles': side.name }))
-    const sidesSheet = XLSX.utils.json_to_sheet(sidesRef)
-    XLSX.utils.book_append_sheet(workbook, sidesSheet, 'Acompañamientos')
-
-    // Hoja de referencia: Puntos de cocción disponibles
-    const cookingPointsRef = cookingPoints.map(cp => ({ 'Puntos de Cocción Disponibles': cp.name }))
-    const cookingPointsSheet = XLSX.utils.json_to_sheet(cookingPointsRef)
-    XLSX.utils.book_append_sheet(workbook, cookingPointsSheet, 'Puntos de Cocción')
 
     // Hoja de instrucciones
     const instructions = [
@@ -263,7 +253,8 @@ class ExcelService {
                 fee: row['Tarifa'] ? Number(row['Tarifa']) : 0,
                 author: row['Autor'] || '',
                 has_cooking_point: row['Tiene Puntos de Cocción']?.toLowerCase() === 'sí' || row['Tiene Puntos de Cocción']?.toLowerCase() === 'si',
-                has_sides: row['Tiene Acompañamientos']?.toLowerCase() === 'sí' || row['Tiene Acompañamientos']?.toLowerCase() === 'si'
+                has_sides: row['Tiene Acompañamientos']?.toLowerCase() === 'sí' || row['Tiene Acompañamientos']?.toLowerCase() === 'si',
+                max_sides_count: 0
               }
 
               validItems.push(item)

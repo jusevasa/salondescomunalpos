@@ -11,3 +11,6 @@ import * as AuthPages from './auth'
 export const LoginPage = AuthPages.LoginPage
 export const UnauthorizedPage = AuthPages.UnauthorizedPage
 
+// Waiter pages
+export { default as WaiterPage } from './WaiterPage'
+
