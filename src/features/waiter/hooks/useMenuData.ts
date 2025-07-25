@@ -29,7 +29,10 @@ export const useMenuData = () => {
           .from('menu_items')
           .select(`
             *,
-            menu_categories(*)
+            menu_categories(
+              *,
+              print_stations(*)
+            )
           `)
           .eq('active', true)
 
@@ -54,7 +57,10 @@ export const useMenuData = () => {
           .from('menu_items')
           .select(`
             *,
-            menu_categories(*)
+            menu_categories(
+              *,
+              print_stations(*)
+            )
           `)
           .eq('active', true)
 

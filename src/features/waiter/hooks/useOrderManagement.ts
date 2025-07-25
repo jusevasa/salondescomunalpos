@@ -27,7 +27,7 @@ export const useOrderManagement = () => {
             table:tables(*),
             order_items(
               *,
-              menu_item:menu_items(*)
+              menu_item:menu_items(*, menu_categories(*, print_stations(*)))
             )
           `
           )
@@ -77,7 +77,7 @@ export const useOrderManagement = () => {
           table:tables(*),
           order_items(
             *,
-            menu_item:menu_items(*)
+            menu_item:menu_items(*, menu_categories(*, print_stations(*)))
           )
         `
         )
@@ -134,7 +134,7 @@ export const useOrderManagement = () => {
         .select(
           `
           *,
-          menu_item:menu_items(*)
+          menu_item:menu_items(*, menu_categories(*, print_stations(*)))
         `
         )
         .single();
