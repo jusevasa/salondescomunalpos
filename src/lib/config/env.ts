@@ -1,6 +1,7 @@
 export const env = {
   SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  SUPABASE_SERVICE_ROLE_KEY: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
 } as const
 
 export const validateEnv = () => {
@@ -15,4 +16,18 @@ export const validateEnv = () => {
   }
   
   return { SUPABASE_URL, SUPABASE_ANON_KEY }
-} 
+}
+
+export const validateAdminEnv = () => {
+  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = env
+  
+  if (!SUPABASE_URL) {
+    throw new Error('Missing VITE_SUPABASE_URL environment variable')
+  }
+  
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Missing VITE_SUPABASE_SERVICE_ROLE_KEY environment variable')
+  }
+  
+  return { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY }
+}

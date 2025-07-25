@@ -22,6 +22,7 @@ import {
   BarChart3, 
   LogOut,
   ChefHat,
+  UserCog,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -44,6 +45,11 @@ const menuItems = [
     title: "Mesas",
     url: "/admin/tables",
     icon: Users,
+  },
+  {
+    title: "Usuarios",
+    url: "/admin/users",
+    icon: UserCog,
   },
   {
     title: "Reportes",

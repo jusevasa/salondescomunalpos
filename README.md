@@ -20,7 +20,10 @@ Crea un archivo `.env` en la raíz del proyecto:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
+
+> ⚠️ **Importante**: La `SERVICE_ROLE_KEY` tiene privilegios de administrador y es necesaria para operaciones como crear usuarios. Manténla segura y nunca la expongas en código del lado del cliente.
 
 ### 2. Base de Datos
 

@@ -11,6 +11,7 @@ import {
   AdminOrdersPage,
   AdminTablesPage,
   AdminReportsPage,
+  AdminUsersPage,
 } from '@/pages'
 import './index.css'
 import { ToastProvider } from './components/ui/toast'
@@ -73,6 +74,16 @@ const router = createBrowserRouter([
       <ProtectedRoute allowedRoles={['admin']}>
         <AdminLayout>
           <AdminReportsPage />
+        </AdminLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/users',
+    element: (
+      <ProtectedRoute allowedRoles={['admin']}>
+        <AdminLayout>
+          <AdminUsersPage />
         </AdminLayout>
       </ProtectedRoute>
     ),

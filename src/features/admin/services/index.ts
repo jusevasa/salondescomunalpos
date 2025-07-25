@@ -1,4 +1,8 @@
 import { supabase } from '@/lib/config/supabase'
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+
 import type {  
   OrderFilters, 
   OrdersResponse, 
@@ -384,7 +388,8 @@ export const paymentService = {
       const totalToPay = order.total_amount + tipAmount
       const changeAmount = request.receivedAmount ? Math.max(0, request.receivedAmount - totalToPay) : 0
 
-      // Create payment record
+      const dateTimeNow = format(new Date(),'yyyy-MM-dd HH:mm:ss',{locale: es})
+
       const paymentData = {
         order_id: request.orderId,
         payment_method_id: request.paymentMethodId,
@@ -395,7 +400,9 @@ export const paymentService = {
         received_amount: request.receivedAmount,
         change_amount: changeAmount,
         status: 'completed' as const,
-        notes: request.notes
+        notes: request.notes,
+        updated_at: dateTimeNow,
+        created_at: dateTimeNow
       }
 
       const { data: payment, error: paymentError } = await supabase
@@ -415,7 +422,7 @@ export const paymentService = {
           paid_amount: totalToPay,
           change_amount: changeAmount,
           status: 'paid',
-          updated_at: new Date().toISOString()
+          updated_at: dateTimeNow
         })
         .eq('id', request.orderId)
 
