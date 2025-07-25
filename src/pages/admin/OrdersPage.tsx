@@ -11,7 +11,7 @@ export default function AdminOrdersPage() {
 
   useOrdersSubscription()
 
-  const orders = ordersData?.orders || []
+  const orders = ordersData?.orders.filter(order => order.payment_status != 'paid') || []
   const pendingOrders = orders.filter(order => order.payment_status === 'pending')
   const paidOrders = orders.filter(order => order.payment_status === 'paid')
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total_amount, 0)

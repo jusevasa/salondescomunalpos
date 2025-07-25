@@ -585,6 +585,10 @@ export const reportsService = {
     try {
       const { date_from, date_to } = filters
 
+      // Adjust dates to include full day range
+      const startDate = `${date_from} 00:00:00`
+      const endDate = `${date_to} 23:59:59`
+
       // Get orders within date range with their items and categories
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
@@ -611,8 +615,8 @@ export const reportsService = {
             )
           )
         `)
-        .gte('created_at', date_from)
-        .lte('created_at', date_to)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
         .eq('status', 'paid')
 
       if (ordersError) {

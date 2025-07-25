@@ -11,8 +11,10 @@ import type { ReportsFilters } from '../types'
 
 export default function ReportsTable() {
   const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
-  
+  const todayStr = today.getFullYear() + '-' + 
+    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(today.getDate()).padStart(2, '0')
+
   const [filters, setFilters] = useState<ReportsFilters>({
     date_from: todayStr,
     date_to: todayStr
@@ -70,7 +72,7 @@ export default function ReportsTable() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1">
+            <div className="flex-1 space-y-2">
               <Label htmlFor="date_from">Fecha desde</Label>
               <Input
                 id="date_from"
@@ -79,7 +81,7 @@ export default function ReportsTable() {
                 onChange={(e) => handleDateChange('date_from', e.target.value)}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 space-y-2">
               <Label htmlFor="date_to">Fecha hasta</Label>
               <Input
                 id="date_to"
