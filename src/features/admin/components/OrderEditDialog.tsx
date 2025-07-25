@@ -206,12 +206,26 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
   const calculateTotals = () => {
     if (!order?.items || order.items.length === 0) return { subtotal: 0, tax: 0, total: 0 }
 
-    const subtotal = Object.values(editingItems).reduce((sum, item) => {
-      const originalItem = order.items.find(oi => oi.id === item.id)
-      return sum + (originalItem ? originalItem.price * item.quantity : 0)
-    }, 0)
+    let subtotal = 0
+    let tax = 0
 
-    const tax = subtotal * 0.08
+    Object.values(editingItems).forEach(item => {
+      const originalItem = order.items.find(oi => oi.id === item.id)
+      if (originalItem) {
+        // Buscar el menu item completo para obtener base_price
+        const orderItem = order.order_items?.find(oi => oi.id === item.id)
+        const menuItem = orderItem?.menu_items
+        
+        // Usar base_price si está disponible, sino usar price
+        const unitPrice = menuItem?.base_price || originalItem.price
+        const itemSubtotal = unitPrice * item.quantity
+        subtotal += itemSubtotal
+        
+        const itemTaxRate = menuItem?.tax || 0
+        tax += itemSubtotal * itemTaxRate
+      }
+    })
+
     const total = subtotal + tax
 
     return { subtotal, tax, total }

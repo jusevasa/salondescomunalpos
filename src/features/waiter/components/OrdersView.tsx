@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOrders } from '../hooks/useOrders'
 import { usePrintServices } from '@/features/shared/hooks/usePrintServices'
+import { useInvoiceData, usePrintInvoiceFromPayment } from '@/features/admin/hooks'
 import { useToast } from '@/components/ui/toast'
 import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
-import { Clock, Users, DollarSign, Printer } from 'lucide-react'
+import { Clock, Users, DollarSign, Printer, Receipt } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { DatabaseOrder } from '@/features/shared/types/database'
 
@@ -27,6 +28,8 @@ const statusLabels = {
 export default function OrdersView() {
   const { data: orders, isLoading, error } = useOrders()
   const { printOrder, isPrintingOrder, isServiceAvailable } = usePrintServices()
+  const { hasInvoiceDataForOrder, getInvoiceDataForOrder, clearInvoiceData } = useInvoiceData()
+  const { printInvoiceFromStoredData, isPrinting: isPrintingInvoice } = usePrintInvoiceFromPayment()
   const { addToast } = useToast()
 
   const handlePrintOrder = async (order: any) => {
@@ -86,6 +89,41 @@ export default function OrdersView() {
     }
   }
 
+  const handlePrintInvoice = async (orderId: string) => {
+    try {
+      // Obtener datos de factura guardados para esta orden
+      const invoiceData = getInvoiceDataForOrder(orderId)
+      
+      if (!invoiceData) {
+        addToast({
+          title: 'Sin datos de factura',
+          description: 'No se encontraron datos de pago guardados para esta orden',
+          variant: 'error'
+        })
+        return
+      }
+
+      // Imprimir factura usando los datos guardados
+      await printInvoiceFromStoredData(invoiceData)
+      
+      addToast({
+        title: 'Factura impresa',
+        description: `Factura de la orden #${orderId} enviada a impresión`,
+        variant: 'success'
+      })
+      
+      // Limpiar datos después de imprimir exitosamente
+      clearInvoiceData()
+    } catch (error) {
+      console.error('Error printing invoice:', error)
+      addToast({
+        title: 'Error al imprimir factura',
+        description: 'Hubo un problema al imprimir la factura',
+        variant: 'error'
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -138,15 +176,30 @@ export default function OrdersView() {
                   <span className="text-sm text-muted-foreground">
                     Mesa {order.table?.number}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handlePrintOrder(order)}
-                    disabled={!isServiceAvailable || isPrintingOrder}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Printer className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePrintOrder(order)}
+                      disabled={!isServiceAvailable || isPrintingOrder}
+                      className="h-8 w-8 p-0"
+                      title="Imprimir orden"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    {hasInvoiceDataForOrder(order.id.toString()) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePrintInvoice(order.id.toString())}
+                        disabled={isPrintingInvoice}
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                        title="Imprimir factura (datos guardados)"
+                      >
+                        <Receipt className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardTitle>
             </CardHeader>

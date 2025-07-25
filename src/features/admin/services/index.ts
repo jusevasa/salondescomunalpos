@@ -55,6 +55,7 @@ export const ordersService = {
               id,
               name,
               price,
+              tax,
               category_id,
               menu_categories (
                 id,
@@ -323,16 +324,38 @@ export const ordersService = {
 
   async recalculateOrderTotals(orderId: number) {
     try {
-      // Get all order items
+      // Get all order items with menu_items tax and base_price information
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
-        .select('subtotal')
+        .select(`
+          quantity,
+          unit_price,
+          subtotal,
+          menu_items (
+            tax,
+            base_price
+          )
+        `)
         .eq('order_id', orderId)
 
       if (itemsError) throw itemsError
 
-      const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0)
-      const taxAmount = subtotal * 0.08 // 8% tax
+      // Calculate subtotal using base_price if available, otherwise use unit_price
+      const subtotal = orderItems.reduce((sum, item) => {
+        const menuItem = item.menu_items as any
+        const unitPrice = menuItem?.base_price || item.unit_price
+        return sum + (unitPrice * item.quantity)
+      }, 0)
+      
+      // Calculate tax based on each item's tax rate using base_price
+      const taxAmount = orderItems.reduce((sum, item) => {
+        const menuItem = item.menu_items as any
+        const itemTaxRate = menuItem?.tax || 0
+        const unitPrice = menuItem?.base_price || item.unit_price
+        const itemSubtotal = unitPrice * item.quantity
+        return sum + (itemSubtotal * itemTaxRate)
+      }, 0)
+      
       const totalAmount = subtotal + taxAmount
 
       // Update order totals
@@ -376,19 +399,34 @@ export const paymentService = {
 
   async processPayment(request: ProcessPaymentRequest): Promise<Payment> {
     try {
-      // Get order details
+      // Get order details with order items and menu items
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          order_items (
+            quantity,
+            unit_price,
+            menu_items (
+              base_price
+            )
+          )
+        `)
         .eq('id', request.orderId)
         .single()
 
       if (orderError) throw orderError
 
-      // Calculate payment details
+      // Calculate subtotal based on base_price
+      const basePriceSubtotal = order.order_items?.reduce((sum: number, item: any) => {
+        const unitPrice = item.menu_items?.base_price || item.unit_price
+        return sum + (unitPrice * item.quantity)
+      }, 0) || order.total_amount
+
+      // Calculate payment details using base_price subtotal for tips
       let tipAmount = 0
       if (request.tipPercentage) {
-        tipAmount = (order.total_amount * request.tipPercentage) / 100
+        tipAmount = (basePriceSubtotal * request.tipPercentage) / 100
       } else if (request.tipAmount) {
         tipAmount = request.tipAmount
       }

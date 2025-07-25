@@ -81,7 +81,7 @@ export interface InvoiceMenuItem {
 }
 
 export interface PaymentInfo {
-  method: 'cash' | 'card' | 'mixed'
+  method: string
   payment_method_name: string
   cash_amount: number
   card_amount: number

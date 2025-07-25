@@ -106,13 +106,15 @@ export const useOrderManagement = () => {
       // Primero obtener el precio del item
       const { data: menuItem, error: menuError } = await supabase
         .from('menu_items')
-        .select('price')
+        .select('price, base_price')
         .eq('id', itemData.menu_item_id)
         .single();
 
       if (menuError) throw menuError;
 
-      const subtotal = menuItem.price * itemData.quantity;
+      // Usar base_price si está disponible, sino usar price
+      const unitPrice = menuItem.base_price || menuItem.price;
+      const subtotal = unitPrice * itemData.quantity;
 
       const dateTimeNow = format(new Date(), 'yyyy-MM-dd HH:mm:ss', {
         locale: es,
@@ -124,7 +126,7 @@ export const useOrderManagement = () => {
           order_id: orderId,
           menu_item_id: itemData.menu_item_id,
           quantity: itemData.quantity,
-          unit_price: menuItem.price,
+          unit_price: unitPrice,
           subtotal: subtotal,
           cooking_point_id: itemData.cooking_point_id,
           notes: itemData.notes,

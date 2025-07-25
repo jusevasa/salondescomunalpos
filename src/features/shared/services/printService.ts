@@ -136,6 +136,7 @@ class PrintService {
         total: invoiceData.grand_total
       })
 
+      debugger;
       const response = await this.makeRequest<PrintInvoiceResponse>(
         '/api/orders/invoice',
         invoiceData

@@ -47,6 +47,8 @@ export interface DatabaseOrderItem {
     id: number
     name: string
     price: number
+    base_price?: number
+    tax: number
     category_id: number
     menu_categories?: {
       id: number

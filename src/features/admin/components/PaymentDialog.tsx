@@ -28,8 +28,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Calculator, CreditCard, DollarSign, Receipt } from 'lucide-react'
-import { usePaymentMethods, useProcessPayment } from '../hooks'
+import { Calculator, CreditCard, DollarSign, Receipt, Printer } from 'lucide-react'
+import { usePaymentMethods, useProcessPayment, useInvoiceData, usePrintInvoiceFromPayment } from '../hooks'
 import { paymentSchema, cashPaymentSchema } from '@/lib/validations/payment'
 import type { PaymentFormData, CashPaymentFormData } from '@/lib/validations/payment'
 import type { Order } from '../types'
@@ -46,6 +46,8 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
   
   const { data: paymentMethods = [], isLoading: loadingMethods } = usePaymentMethods()
   const processPayment = useProcessPayment()
+  const { saveInvoiceData, clearInvoiceData } = useInvoiceData()
+  const { printInvoice, isPrinting: isPrintingInvoice } = usePrintInvoiceFromPayment()
   
   const isCashPayment = paymentMethods.find(pm => pm.id === parseInt(selectedPaymentMethod))?.code === 'CASH'
   const schema = isCashPayment ? cashPaymentSchema : paymentSchema
@@ -57,9 +59,20 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
 
   const watchedValues = form.watch()
   
+  // Función para calcular subtotal basado en base_price
+  const calculateBasePriceSubtotal = () => {
+    if (!order?.order_items || order.order_items.length === 0) return order?.subtotal || 0
+    
+    return order.order_items.reduce((sum, item) => {
+      const menuItem = item.menu_items
+      const unitPrice = menuItem?.base_price || item.unit_price
+      return sum + (unitPrice * item.quantity)
+    }, 0)
+  }
+  
   // Calculate totals
   const orderAmount = order?.total_amount || 0
-  const subtotalAmount = order?.subtotal || 0
+  const subtotalAmount = calculateBasePriceSubtotal() // Usar subtotal basado en base_price
   const tipPercentage = watchedValues.tipPercentage || 0
   const tipAmount = watchedValues.tipAmount || 0
   const receivedAmount = watchedValues.receivedAmount || 0
@@ -76,8 +89,11 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
       form.reset()
       setSelectedPaymentMethod('')
       setTipMode('percentage')
+    } else if (!open) {
+      // Limpiar datos de factura cuando se cierra el dialog sin procesar pago
+      clearInvoiceData()
     }
-  }, [open, order, form])
+  }, [open, order, form, clearInvoiceData])
 
   const onSubmit = async (data: PaymentFormData | CashPaymentFormData) => {
     if (!order) return
@@ -94,9 +110,49 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
         notes: data.notes
       })
 
+      // Limpiar datos de factura después del pago exitoso
+      clearInvoiceData()
       onOpenChange(false)
     } catch (error) {
       console.error('Payment failed:', error)
+    }
+  }
+
+  const handlePrintInvoice = async () => {
+    if (!order || !selectedPaymentMethod) return
+
+    const selectedMethod = paymentMethods.find(pm => pm.id === parseInt(selectedPaymentMethod))
+    if (!selectedMethod) return
+
+    try {
+      const finalTipAmount = tipMode === 'percentage' ? calculatedTipAmount : tipAmount
+      
+      // Guardar datos en localStorage antes de imprimir
+      saveInvoiceData(
+        order,
+        selectedMethod,
+        finalTipAmount,
+        tipMode,
+        tipMode === 'percentage' ? tipPercentage : undefined,
+        receivedAmount,
+        changeAmount,
+        form.getValues('notes')
+      )
+
+      // Imprimir factura
+      await printInvoice({
+        order,
+        paymentMethod: selectedMethod,
+        tipAmount: finalTipAmount,
+        tipPercentage: tipMode === 'percentage' ? tipPercentage : undefined,
+        receivedAmount,
+        changeAmount,
+        notes: form.getValues('notes')
+      })
+
+      console.log('✅ Factura impresa y datos guardados en localStorage')
+    } catch (error) {
+      console.error('❌ Error al imprimir factura:', error)
     }
   }
 
@@ -385,6 +441,16 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
                   className="w-full sm:w-auto"
                 >
                   Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrintInvoice}
+                  disabled={!selectedPaymentMethod || isPrintingInvoice}
+                  className="flex items-center gap-2 w-full sm:w-auto"
+                >
+                  <Printer className="h-4 w-4" />
+                  {isPrintingInvoice ? 'Imprimiendo...' : 'Imprimir Factura'}
                 </Button>
                 <Button
                   type="submit"
