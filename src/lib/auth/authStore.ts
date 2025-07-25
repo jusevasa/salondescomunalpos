@@ -94,6 +94,7 @@ export const useAuthStore = create<AuthStore>()(
 
 // Initialize auth state and setup listeners
 let initialized = false
+let authListener: { data: { subscription: { unsubscribe: () => void } } } | null = null
 
 export const initializeAuth = () => {
   if (initialized) return
@@ -102,19 +103,37 @@ export const initializeAuth = () => {
   // Initialize on first call
   useAuthStore.getState().initialize()
 
+  // Cleanup existing listener if any
+  if (authListener) {
+    authListener.data.subscription.unsubscribe()
+  }
+
   // Setup auth state change listener
-  authService.onAuthStateChange(async (event, _) => {
-    const { refreshProfile } = useAuthStore.getState()
-    
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-      await refreshProfile()
-    } else if (event === 'SIGNED_OUT') {
-      useAuthStore.setState({
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        isLoading: false,
-      })
+  authListener = authService.onAuthStateChange(async (event) => {
+    try {
+      const { refreshProfile } = useAuthStore.getState()
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await refreshProfile()
+      } else if (event === 'SIGNED_OUT') {
+        useAuthStore.setState({
+          user: null,
+          profile: null,
+          isAuthenticated: false,
+          isLoading: false,
+        })
+      }
+    } catch (error) {
+      console.error('Error in auth state change listener:', error)
     }
   })
-} 
+}
+
+// Cleanup function for when the app unmounts
+export const cleanupAuth = () => {
+  if (authListener) {
+    authListener.data.subscription.unsubscribe()
+    authListener = null
+  }
+  initialized = false
+}
