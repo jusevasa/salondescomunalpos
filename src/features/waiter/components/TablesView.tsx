@@ -25,25 +25,26 @@ export default function TablesView() {
   }, [tables, searchTerm])
 
   // Función para obtener el estado de una mesa
-  const getTableStatus = (tableId: number) => {
-    if (!orders) return { status: 'available', order: null }
-    
-    const activeOrder = orders.find(order => 
-      order.table_id === tableId && 
-      order.status !== 'paid' && 
-      order.status !== 'cancelled'
-    )
-    
-    if (activeOrder) {
-      return { status: 'occupied', order: activeOrder }
+  const getTableStatus = (table: Table) => {
+    // Usar el campo status de la tabla como fuente principal de verdad
+    if (!table.status) {
+      // Si status es false, la mesa está ocupada
+      // Buscar la orden activa para mostrar información adicional
+      const activeOrder = orders?.find(order => 
+        order.table_id === table.id && 
+        order.status !== 'paid' && 
+        order.status !== 'cancelled'
+      )
+      return { status: 'occupied', order: activeOrder || null }
     }
     
+    // Si status es true, la mesa está disponible
     return { status: 'available', order: null }
   }
 
   // Función para manejar el clic en una mesa
   const handleTableClick = (table: Table) => {
-    const tableStatus = getTableStatus(table.id)
+    const tableStatus = getTableStatus(table)
     
     if (tableStatus.status === 'occupied' && tableStatus.order) {
       // Si la mesa está ocupada, navegar a editar orden
@@ -113,7 +114,7 @@ export default function TablesView() {
       {filteredTables && filteredTables.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredTables.map((table) => {
-            const tableStatus = getTableStatus(table.id)
+            const tableStatus = getTableStatus(table)
             const isOccupied = tableStatus.status === 'occupied'
             
             return (

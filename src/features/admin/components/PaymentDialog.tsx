@@ -33,6 +33,8 @@ import { usePaymentMethods, useProcessPayment, useInvoiceData, usePrintInvoiceFr
 import { paymentSchema, cashPaymentSchema } from '@/lib/validations/payment'
 import type { PaymentFormData, CashPaymentFormData } from '@/lib/validations/payment'
 import type { Order } from '../types'
+import { useOrderManagement } from '@/features/waiter/hooks/useOrderManagement'
+import { useTableStatus } from '@/features/waiter/hooks/useTableStatus'
 
 interface PaymentDialogProps {
   order: Order | null
@@ -48,6 +50,7 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
   const processPayment = useProcessPayment()
   const { saveInvoiceData, clearInvoiceData } = useInvoiceData()
   const { printInvoice, isPrinting: isPrintingInvoice } = usePrintInvoiceFromPayment()
+  const { freeTable } = useTableStatus();
   
   const isCashPayment = paymentMethods.find(pm => pm.id === parseInt(selectedPaymentMethod))?.code === 'CASH'
   const schema = isCashPayment ? cashPaymentSchema : paymentSchema
@@ -109,8 +112,7 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
         receivedAmount: 'receivedAmount' in data ? data.receivedAmount : undefined,
         notes: data.notes
       })
-
-      // Limpiar datos de factura después del pago exitoso
+      freeTable(order.table_id)
       clearInvoiceData()
       onOpenChange(false)
     } catch (error) {

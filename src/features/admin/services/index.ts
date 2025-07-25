@@ -474,6 +474,21 @@ export const paymentService = {
 
       if (orderUpdateError) throw orderUpdateError
 
+      // Free the table after successful payment
+      if (order.table_id) {
+        const { error: tableUpdateError } = await supabase
+          .from('tables')
+          .update({
+            status: true, // true = available, false = occupied
+            updated_at: dateTimeNow
+          })
+          .eq('id', order.table_id)
+
+        if (tableUpdateError) {
+          console.error('Error freeing table:', tableUpdateError)
+        }
+      }
+
       return payment
     } catch (error) {
       console.error('Error processing payment:', error)

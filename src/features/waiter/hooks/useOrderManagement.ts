@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/config/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTableStatus } from './useTableStatus';
 import type {
   Order,
   CreateOrderData,
@@ -13,6 +14,7 @@ import { format } from 'date-fns';
 export const useOrderManagement = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { occupyTable, freeTable } = useTableStatus();
 
   // Obtener orden activa de una mesa
   const useActiveOrderByTable = (tableId: number) => {
@@ -84,6 +86,9 @@ export const useOrderManagement = () => {
         .single();
 
       if (error) throw error;
+
+      await occupyTable(orderData.table_id);
+
       return data;
     },
     onSuccess: (data) => {
@@ -244,11 +249,54 @@ export const useOrderManagement = () => {
     },
   });
 
+  // Completar/Pagar orden y liberar mesa
+  const completeOrder = useMutation({
+    mutationFn: async ({ 
+      orderId, 
+      status 
+    }: { 
+      orderId: number
+      status: 'paid' | 'cancelled'
+    }) => {
+      // Primero obtener la información de la orden para conocer la mesa
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('table_id')
+        .eq('id', orderId)
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Actualizar el estado de la orden
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Liberar la mesa
+      await freeTable(orderData.table_id);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activeOrder'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
   return {
     useActiveOrderByTable,
     createOrder,
     addOrderItem,
     updateDinersCount,
     updateOrder,
+    completeOrder,
   };
 };
