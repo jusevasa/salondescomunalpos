@@ -2,7 +2,10 @@
 // EXPORTACIONES PRINCIPALES DE SHARED FEATURES
 // ============================================================================
 
-// Tipos
+// ============================================================================
+// EXPORTACIONES DE TIPOS
+// ============================================================================
+
 export type {
   PrintStation,
   CookingPoint,
@@ -16,46 +19,62 @@ export type {
   PrintInvoiceRequest,
   PrintInvoiceResponse,
   PrintError,
-} from './types'
+  PrintServiceError,
+  RestaurantInfo,
+} from './types/print'
 
-// Servicios
-export { printService, PrintServiceError } from './services'
 export type {
-  PrintServiceErrorType,
-} from './services'
+  DatabaseOrder,
+  DatabaseOrderItem,
+  DatabaseTable,
+  DatabaseProfile,
+  DatabaseMenuItem,
+  DatabaseMenuCategory,
+  DatabasePayment,
+  DatabasePaymentMethod,
+  CreateOrderData,
+  AddOrderItemData,
+  UpdateOrderData,
+  OrderStatus,
+  PaymentStatus,
+  UserRole,
+} from './types/database'
 
-// Exportar hooks
+// ============================================================================
+// EXPORTACIONES DE SERVICIOS
+// ============================================================================
+
+export { printService } from './services/printService'
+
+// ============================================================================
+// EXPORTACIONES DE HOOKS
+// ============================================================================
+
 export {
   usePrintOrder,
   usePrintInvoice,
   usePrintServices,
   usePrintServiceHealth,
-  printQueryKeys
-} from './hooks'
+  printQueryKeys,
+} from './hooks/usePrintServices'
 
 export type {
   PrintOrderMutation,
   PrintInvoiceMutation,
-  PrintServicesHook
-} from './hooks'
+  PrintServicesHook,
+} from './hooks/usePrintServices'
 
-// Exportar utilidades
+// ============================================================================
+// EXPORTACIONES DE UTILIDADES
+// ============================================================================
+
 export {
   transformOrderToPrintRequest,
   transformOrderToInvoiceRequest,
   validateOrderForPrinting,
-  validateOrderForInvoicing
 } from './utils/printTransformers'
 
-// Exportaciones de utilidades de validación de contratos
 export {
   validatePrintOrderContract,
   validatePrintInvoiceContract,
-  validateBeforeSending
 } from './utils/contractValidation'
-
-export type {
-  DatabaseOrder,
-  DatabaseOrderItem,
-  DatabasePayment
-} from './utils/printTransformers'

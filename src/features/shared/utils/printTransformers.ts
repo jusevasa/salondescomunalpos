@@ -7,89 +7,11 @@ import type {
   RestaurantInfo
 } from '../types/print'
 
-// ============================================================================
-// TIPOS PARA DATOS DE ENTRADA (DESDE LA BASE DE DATOS)
-// ============================================================================
-
-interface DatabaseOrder {
-  id: number
-  table_id: number
-  profile_id: string
-  diners_count: number
-  status: string
-  subtotal: number
-  tax_amount: number
-  total_amount: number
-  tip_amount: number
-  grand_total: number
-  paid_amount: number
-  change_amount: number
-  notes?: string
-  created_at: string
-  tables?: {
-    number: string
-  }
-  profiles?: {
-    name: string
-  }
-  order_items?: DatabaseOrderItem[]
-  payments?: DatabasePayment[]
-}
-
-interface DatabaseOrderItem {
-  id: number
-  menu_item_id: number
-  quantity: number
-  unit_price: number
-  subtotal: number
-  notes?: string
-  menu_items?: {
-    id: number
-    name: string
-    price: number
-    category_id: number
-    has_cooking_point: boolean
-    tax: number
-    fee: number
-    has_sides: boolean
-    menu_categories?: {
-      id: number
-      name: string
-      print_station_id?: number
-      print_stations?: {
-        id: number
-        name: string
-        code: string
-        printer_ip: string
-      }
-    }
-  }
-  order_item_cooking_points?: {
-    cooking_point_id: number
-    cooking_points?: {
-      id: number
-      name: string
-    }
-  }[]
-  order_item_sides?: {
-    side_id: number
-    sides?: {
-      id: number
-      name: string
-    }
-  }[]
-}
-
-interface DatabasePayment {
-  id: number
-  payment_method_id: number
-  amount: number
-  payment_methods?: {
-    id: number
-    name: string
-    code: string
-  }
-}
+import type {
+  DatabaseOrder,
+  DatabaseOrderItem,
+  DatabasePayment
+} from '../types/database'
 
 // ============================================================================
 // UTILIDADES DE TRANSFORMACIÓN
@@ -128,9 +50,9 @@ export const transformOrderToInvoiceRequest = (order: DatabaseOrder, restaurantI
     subtotal: item.subtotal,
     tax_rate: item.menu_items?.tax || 0,
     tax_amount: item.subtotal * (item.menu_items?.tax || 0),
-    cooking_point: item.order_item_cooking_points?.[0]?.cooking_points ? {
-      id: item.order_item_cooking_points[0].cooking_points.id,
-      name: item.order_item_cooking_points[0].cooking_points.name
+    cooking_point: item.cooking_points ? {
+      id: item.cooking_points.id,
+      name: item.cooking_points.name
     } : undefined,
     sides: (item.order_item_sides || []).map(side => ({
       id: side.sides?.id || 0,
@@ -207,9 +129,9 @@ const groupItemsByPrintStation = (orderItems: DatabaseOrderItem[]): PrintGroup[]
       quantity: item.quantity,
       unit_price: item.unit_price,
       subtotal: item.subtotal,
-      cooking_point: item.order_item_cooking_points?.[0]?.cooking_points ? {
-        id: item.order_item_cooking_points[0].cooking_points.id,
-        name: item.order_item_cooking_points[0].cooking_points.name
+      cooking_point: item.cooking_points ? {
+        id: item.cooking_points.id,
+        name: item.cooking_points.name
       } : undefined,
       notes: item.notes,
       sides: (item.order_item_sides || []).map(side => ({
@@ -338,14 +260,4 @@ export const validateOrderForInvoicing = (order: DatabaseOrder): string[] => {
   }
 
   return errors
-}
-
-// ============================================================================
-// EXPORTACIONES DE TIPOS
-// ============================================================================
-
-export type {
-  DatabaseOrder,
-  DatabaseOrderItem,
-  DatabasePayment
 }

@@ -1,3 +1,12 @@
+// ============================================================================
+// TIPOS IMPORTADOS DESDE SHARED
+// ============================================================================
+export type { CookingPoint, Side } from '@/features/shared/types/print'
+
+// ============================================================================
+// TIPOS ESPECÍFICOS DEL MÓDULO WAITER
+// ============================================================================
+
 export interface Table {
   id: number
   number: string
@@ -36,24 +45,6 @@ export interface MenuItem {
   menu_categories?: MenuCategory
 }
 
-export interface Side {
-  id: number
-  name: string
-  active: boolean
-  display_order: number
-  created_at: string
-  updated_at: string
-}
-
-export interface CookingPoint {
-  id: number
-  name: string
-  active: boolean
-  display_order: number
-  created_at: string
-  updated_at: string
-}
-
 export interface OrderItem {
   id?: number
   order_id?: number
@@ -66,7 +57,7 @@ export interface OrderItem {
   created_at?: string
   updated_at?: string
   menu_item?: MenuItem
-  sides?: Side[]
+  sides?: import('@/features/shared/types/print').Side[]
 }
 
 export interface Order {

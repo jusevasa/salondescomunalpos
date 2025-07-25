@@ -5,13 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Minus, ShoppingCart, X, Edit, Search, ChefHat, Utensils } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/components/ui/toast'
+import { Plus, Minus, ShoppingCart, X, Edit, Search, ChefHat, Utensils, Printer } from 'lucide-react'
 import { useOrderManagement } from '../hooks/useOrderManagement'
 import { useMenuData } from '../hooks/useMenuData'
 import { useOrderById } from '../hooks/useOrderById'
+import { usePrintServices } from '@/features/shared/hooks/usePrintServices'
+import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
+import PrintStatusIndicator from './PrintStatusIndicator'
 import { formatCurrency } from '@/lib/utils'
 import OrderConfirmationModal from './OrderConfirmationModal'
 import type { MenuItem, AddOrderItemData, OrderItem, Side } from '../types'
+import type { DatabaseOrder } from '@/features/shared/types/database'
 
 interface EditOrderFormProps {
   orderId: number
@@ -34,10 +40,13 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const [autoPrint, setAutoPrint] = useState(false)
 
   const { addOrderItem, updateOrder } = useOrderManagement()
   const { useMenuCategories, useMenuItemsSearch, useCookingPoints, useSides } = useMenuData()
   const { data: order, isLoading: orderLoading } = useOrderById(orderId)
+  const { printOrder, isServiceAvailable } = usePrintServices()
+  const { addToast } = useToast()
 
   const { data: categories } = useMenuCategories()
   const { data: cookingPoints } = useCookingPoints()
@@ -208,10 +217,105 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
         })
       }
 
+      // Auto-print if enabled and service is available
+      if (autoPrint && isServiceAvailable && newItems.length > 0 && order.table) {
+        try {
+          // Create a DatabaseOrder structure for printing with only new items
+          const orderForPrint: DatabaseOrder = {
+            id: order.id,
+            table_id: order.table_id,
+            profile_id: order.profile_id,
+            diners_count: dinersCount,
+            status: order.status,
+            subtotal: order.subtotal,
+            tax_amount: order.tax_amount || 0,
+            total_amount: order.total_amount,
+            tip_amount: order.tip_amount || 0,
+            grand_total: order.grand_total,
+            paid_amount: order.paid_amount || 0,
+            change_amount: order.change_amount || 0,
+            notes,
+            created_at: order.created_at,
+            updated_at: new Date().toISOString(),
+            tables: {
+               id: order.table.id,
+               number: order.table.number,
+               capacity: order.table.capacity,
+               active: order.table.active,
+               created_at: order.table.created_at,
+               updated_at: order.table.updated_at
+             },
+            order_items: newItems.map((item, index) => ({
+              id: Date.now() + index, // Temporary ID for new items
+              order_id: order.id,
+              menu_item_id: item.menu_item_id,
+              quantity: item.quantity,
+              unit_price: item.menu_item.price,
+              subtotal: item.menu_item.price * item.quantity,
+              cooking_point_id: item.cooking_point_id,
+              notes: item.notes,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              menu_items: {
+                id: item.menu_item.id,
+                name: item.menu_item.name,
+                price: item.menu_item.price,
+                base_price: item.menu_item.base_price,
+                category_id: item.menu_item.category_id,
+                active: item.menu_item.active,
+                tax: item.menu_item.tax,
+                fee: item.menu_item.fee,
+                author: item.menu_item.author,
+                has_cooking_point: item.menu_item.has_cooking_point,
+                has_sides: item.menu_item.has_sides,
+                max_sides_count: item.menu_item.max_sides_count,
+                created_at: item.menu_item.created_at,
+                updated_at: item.menu_item.updated_at,
+                menu_categories: item.menu_item.menu_categories
+              },
+              order_item_sides: item.selectedSides?.map(side => ({
+                id: 0,
+                order_item_id: Date.now() + index,
+                side_id: side.id,
+                quantity: 1,
+                sides: side
+              }))
+            }))
+          }
+
+          const printRequest = transformOrderToPrintRequest(orderForPrint)
+          await printOrder(printRequest)
+          
+          addToast({
+            title: 'Orden actualizada e impresa',
+            description: `Orden #${order.id} - Nuevos items impresos`,
+            variant: 'success'
+          })
+        } catch (printError) {
+          console.error('Error printing order:', printError)
+          addToast({
+            title: 'Orden actualizada',
+            description: 'La orden se actualizó correctamente, pero hubo un error al imprimir',
+            variant: 'warning'
+          })
+        }
+      } else {
+        addToast({
+          title: 'Orden actualizada',
+          description: `Orden #${order.id} actualizada correctamente`,
+          variant: 'success'
+        })
+      }
+
       setShowConfirmationModal(false)
       onSuccess()
     } catch (error) {
       console.error('Error updating order:', error)
+      addToast({
+        title: 'Error al actualizar la orden',
+        description: 'Hubo un problema al actualizar la orden. Inténtalo de nuevo.',
+        variant: 'error'
+      })
     }
   }
 
@@ -526,17 +630,40 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
                 </span>
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={onCancel} className="flex-1">
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleUpdateOrder}
-                  disabled={addOrderItem.isPending || updateOrder.isPending}
-                  className="flex-1"
-                >
-                  Actualizar Orden
-                </Button>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <PrintStatusIndicator />
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="auto-print-edit"
+                      checked={autoPrint}
+                      onCheckedChange={(checked) => setAutoPrint(checked === true)}
+                      disabled={!isServiceAvailable}
+                    />
+                    <label
+                      htmlFor="auto-print-edit"
+                      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
+                        !isServiceAvailable ? 'text-muted-foreground' : ''
+                      }`}
+                    >
+                      Imprimir nuevos items
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={onCancel} className="flex-1">
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleUpdateOrder}
+                    disabled={addOrderItem.isPending || updateOrder.isPending}
+                    className="flex-1"
+                  >
+                    Actualizar Orden
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -1,9 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOrders } from '../hooks/useOrders'
-import { Clock, Users, DollarSign } from 'lucide-react'
+import { usePrintServices } from '@/features/shared/hooks/usePrintServices'
+import { useToast } from '@/components/ui/toast'
+import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
+import { Clock, Users, DollarSign, Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import type { DatabaseOrder } from '@/features/shared/types/database'
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -21,6 +26,65 @@ const statusLabels = {
 
 export default function OrdersView() {
   const { data: orders, isLoading, error } = useOrders()
+  const { printOrder, isPrintingOrder, isServiceAvailable } = usePrintServices()
+  const { addToast } = useToast()
+
+  const handlePrintOrder = async (order: any) => {
+    if (!isServiceAvailable) {
+      addToast({
+        title: 'Servicio no disponible',
+        description: 'El servicio de impresión no está disponible',
+        variant: 'error'
+      })
+      return
+    }
+
+    try {
+      // Convert Order to DatabaseOrder format
+      const databaseOrder: DatabaseOrder = {
+        id: order.id,
+        table_id: order.table_id,
+        profile_id: order.profile_id,
+        diners_count: order.diners_count,
+        status: order.status,
+        subtotal: order.subtotal,
+        tax_amount: order.tax_amount || 0,
+        total_amount: order.total_amount,
+        tip_amount: order.tip_amount || 0,
+        grand_total: order.grand_total,
+        paid_amount: order.paid_amount || 0,
+        change_amount: order.change_amount || 0,
+        notes: order.notes,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        tables: order.table ? {
+          id: order.table.id,
+          number: order.table.number,
+          capacity: order.table.capacity,
+          active: order.table.active,
+          created_at: order.table.created_at,
+          updated_at: order.table.updated_at
+        } : undefined,
+        order_items: order.order_items || []
+      }
+
+      const printRequest = transformOrderToPrintRequest(databaseOrder)
+      await printOrder(printRequest)
+      
+      addToast({
+        title: 'Orden impresa',
+        description: `Orden #${order.id} enviada a impresión`,
+        variant: 'success'
+      })
+    } catch (error) {
+      console.error('Error printing order:', error)
+      addToast({
+        title: 'Error al imprimir',
+        description: 'Hubo un problema al imprimir la orden',
+        variant: 'error'
+      })
+    }
+  }
 
   if (isLoading) {
     return (
@@ -70,9 +134,20 @@ export default function OrdersView() {
                     {statusLabels[order.status as keyof typeof statusLabels]}
                   </Badge>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  Mesa {order.table?.number}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Mesa {order.table?.number}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePrintOrder(order)}
+                    disabled={!isServiceAvailable || isPrintingOrder}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
