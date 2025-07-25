@@ -148,6 +148,8 @@ export const useOrderManagement = () => {
             order_item_id: data.id,
             side_id: sideId,
             quantity: 1,
+            created_at: dateTimeNow,
+            updated_at: dateTimeNow,
           })
         );
 

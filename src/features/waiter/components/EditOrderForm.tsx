@@ -5,15 +5,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Minus, ShoppingCart, X, Edit, Search, ChefHat, Utensils, Printer } from 'lucide-react'
+import { Plus, Minus, ShoppingCart, X, Edit, Search, ChefHat, Utensils } from 'lucide-react'
 import { useOrderManagement } from '../hooks/useOrderManagement'
 import { useMenuData } from '../hooks/useMenuData'
 import { useOrderById } from '../hooks/useOrderById'
 import { usePrintServices } from '@/features/shared/hooks/usePrintServices'
 import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
-import PrintStatusIndicator from './PrintStatusIndicator'
 import { formatCurrency } from '@/lib/utils'
 import OrderConfirmationModal from './OrderConfirmationModal'
 import type { MenuItem, AddOrderItemData, OrderItem, Side } from '../types'
@@ -40,12 +38,12 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
-  const [autoPrint, setAutoPrint] = useState(false)
+
 
   const { addOrderItem, updateOrder } = useOrderManagement()
   const { useMenuCategories, useMenuItemsSearch, useCookingPoints, useSides } = useMenuData()
   const { data: order, isLoading: orderLoading } = useOrderById(orderId)
-  const { printOrder, isServiceAvailable } = usePrintServices()
+  const { printOrder } = usePrintServices()
   const { addToast } = useToast()
 
   const { data: categories } = useMenuCategories()
@@ -184,8 +182,12 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
     return cart.reduce((total, item) => total + (item.menu_item.price * item.quantity), 0)
   }
 
+  const hasNewItems = () => {
+    return cart.some(item => !item.isExisting)
+  }
+
   const handleUpdateOrder = async () => {
-    if (!order) return
+    if (!order || !hasNewItems()) return
     setShowConfirmationModal(true)
   }
 
@@ -217,8 +219,8 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
         })
       }
 
-      // Auto-print if enabled and service is available
-      if (autoPrint && isServiceAvailable && newItems.length > 0 && order.table) {
+      // Always try to print new items if there are any
+      if (newItems.length > 0 && order.table) {
         try {
           // Create a DatabaseOrder structure for printing with only new items
           const orderForPrint: DatabaseOrder = {
@@ -288,7 +290,7 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
           
           addToast({
             title: 'Orden actualizada e impresa',
-            description: `Orden #${order.id} - Nuevos items impresos`,
+            description: `Orden #${order.id} - Nuevos items enviados a impresión`,
             variant: 'success'
           })
         } catch (printError) {
@@ -494,6 +496,16 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
               Items de la Orden ({cart.length} items)
+              {cart.length > 0 && (
+                <div className="flex gap-2 text-xs">
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {cart.filter(item => item.isExisting).length} existentes
+                  </span>
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {cart.filter(item => !item.isExisting).length} nuevos
+                  </span>
+                </div>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -631,39 +643,24 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <PrintStatusIndicator />
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="auto-print-edit"
-                      checked={autoPrint}
-                      onCheckedChange={(checked) => setAutoPrint(checked === true)}
-                      disabled={!isServiceAvailable}
-                    />
-                    <label
-                      htmlFor="auto-print-edit"
-                      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
-                        !isServiceAvailable ? 'text-muted-foreground' : ''
-                      }`}
-                    >
-                      Imprimir nuevos items
-                    </label>
-                  </div>
-                </div>
-                
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={onCancel} className="flex-1">
                     Cancelar
                   </Button>
                   <Button 
                     onClick={handleUpdateOrder}
-                    disabled={addOrderItem.isPending || updateOrder.isPending}
+                    disabled={addOrderItem.isPending || updateOrder.isPending || !hasNewItems()}
                     className="flex-1"
                   >
                     Actualizar Orden
                   </Button>
                 </div>
+                
+                {!hasNewItems() && cart.length > 0 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Agrega nuevos items para actualizar la orden
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

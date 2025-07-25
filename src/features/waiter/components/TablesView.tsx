@@ -1,87 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { useTables } from '../hooks/useTables'
 import { useOrders } from '../hooks/useOrders'
-import { usePrintServices } from '@/features/shared/hooks/usePrintServices'
-import { useToast } from '@/components/ui/toast'
-import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
-import { Users, Clock, Search, ShoppingCart, Printer } from 'lucide-react'
+import { Users, Clock, Search, ShoppingCart, } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import type { Table } from '../types'
-import type { DatabaseOrder } from '@/features/shared/types/database'
 
 export default function TablesView() {
   const { data: tables, isLoading, error } = useTables()
   const { data: orders } = useOrders()
-  const { printOrder, isPrintingOrder, isServiceAvailable } = usePrintServices()
-  const { addToast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
 
-  const handlePrintOrder = async (order: any, event: React.MouseEvent) => {
-    event.stopPropagation() // Evitar que se active el clic de la tarjeta
-    
-    if (!isServiceAvailable) {
-      addToast({
-        title: 'Servicio no disponible',
-        description: 'El servicio de impresión no está disponible',
-        variant: 'error'
-      })
-      return
-    }
-
-    try {
-      // Convert Order to DatabaseOrder format
-      const databaseOrder: DatabaseOrder = {
-        id: order.id,
-        table_id: order.table_id,
-        profile_id: order.profile_id,
-        diners_count: order.diners_count,
-        status: order.status,
-        subtotal: order.subtotal,
-        tax_amount: order.tax_amount || 0,
-        total_amount: order.total_amount,
-        tip_amount: order.tip_amount || 0,
-        grand_total: order.grand_total,
-        paid_amount: order.paid_amount || 0,
-        change_amount: order.change_amount || 0,
-        notes: order.notes,
-        created_at: order.created_at,
-        updated_at: order.updated_at,
-        tables: order.table ? {
-          id: order.table.id,
-          number: order.table.number,
-          capacity: order.table.capacity,
-          active: order.table.active,
-          created_at: order.table.created_at,
-          updated_at: order.table.updated_at
-        } : undefined,
-        order_items: order.order_items || []
-      }
-
-      const printRequest = transformOrderToPrintRequest(databaseOrder)
-      await printOrder(printRequest)
-      
-      addToast({
-        title: 'Orden impresa',
-        description: `Orden #${order.id} enviada a impresión`,
-        variant: 'success'
-      })
-    } catch (error) {
-      console.error('Error printing order:', error)
-      addToast({
-        title: 'Error al imprimir',
-        description: 'Hubo un problema al imprimir la orden',
-        variant: 'error'
-      })
-    }
-  }
-
-  // Filtrar mesas basado en el término de búsqueda
   const filteredTables = useMemo(() => {
     if (!tables || !searchTerm.trim()) return tables
     
@@ -201,17 +134,6 @@ export default function TablesView() {
                       >
                         {isOccupied ? 'Ocupada' : 'Disponible'}
                       </Badge>
-                      {isOccupied && tableStatus.order && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => handlePrintOrder(tableStatus.order, e)}
-                          disabled={!isServiceAvailable || isPrintingOrder}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Printer className="h-3 w-3" />
-                        </Button>
-                      )}
                     </div>
                   </CardTitle>
                 </CardHeader>

@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Minus, Users, ShoppingCart, X, Search, ChefHat, Utensils } from 'lucide-react'
 import { useOrderManagement } from '../hooks/useOrderManagement'
 import { useMenuData } from '../hooks/useMenuData'
@@ -14,9 +13,10 @@ import { useToast } from '@/components/ui/toast'
 import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
 import { formatCurrency } from '@/lib/utils'
 import OrderConfirmationModal from './OrderConfirmationModal'
-import PrintStatusIndicator from './PrintStatusIndicator'
 import type { MenuItem, AddOrderItemData, Side, Table } from '../types'
 import type { DatabaseOrder } from '@/features/shared/types/database'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 interface CreateOrderFormProps {
   table: Table
@@ -37,17 +37,17 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
-  const [autoPrint, setAutoPrint] = useState(true)
+
 
   const { createOrder, addOrderItem } = useOrderManagement()
   const { useMenuCategories, useMenuItemsSearch, useCookingPoints, useSides } = useMenuData()
-  const { printOrder, isServiceAvailable } = usePrintServices()
+  const { printOrder } = usePrintServices()
   const { addToast } = useToast()
 
   const { data: categories } = useMenuCategories()
   const { data: cookingPoints } = useCookingPoints()
   const { data: sides } = useSides()
-  
+
   // Use optimized search hook that queries Supabase directly
   const { data: menuItems } = useMenuItemsSearch(
     searchTerm.trim() || undefined,
@@ -67,11 +67,11 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
   const addToCart = (menuItem: MenuItem) => {
     // Check if item already exists in cart
     const existingItemIndex = cart.findIndex(item => item.menu_item_id === menuItem.id)
-    
+
     if (existingItemIndex >= 0) {
       // Increment quantity of existing item
-      setCart(prev => prev.map((item, index) => 
-        index === existingItemIndex 
+      setCart(prev => prev.map((item, index) =>
+        index === existingItemIndex
           ? { ...item, quantity: item.quantity + 1 }
           : item
       ))
@@ -91,9 +91,9 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
 
   const updateCartItemSides = (tempId: string, sideIds: number[]) => {
     const selectedSides = sides?.filter(side => sideIds.includes(side.id)) || []
-    setCart(prev => prev.map(item => 
-      item.tempId === tempId 
-        ? { ...item, sides: sideIds, selectedSides } 
+    setCart(prev => prev.map(item =>
+      item.tempId === tempId
+        ? { ...item, sides: sideIds, selectedSides }
         : item
     ))
   }
@@ -104,7 +104,7 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
 
     const currentSides = cartItem.sides || []
     const maxSides = cartItem.menu_item.max_sides_count || 0
-    
+
     if (currentSides.includes(sideId)) {
       // Remove side
       const newSides = currentSides.filter(id => id !== sideId)
@@ -125,7 +125,7 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
     if (quantity <= 0) {
       setCart(prev => prev.filter(item => item.tempId !== tempId))
     } else {
-      setCart(prev => prev.map(item => 
+      setCart(prev => prev.map(item =>
         item.tempId === tempId ? { ...item, quantity } : item
       ))
     }
@@ -136,13 +136,13 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
   }
 
   const updateCartItemCookingPoint = (tempId: string, cookingPointId: number) => {
-    setCart(prev => prev.map(item => 
+    setCart(prev => prev.map(item =>
       item.tempId === tempId ? { ...item, cooking_point_id: cookingPointId } : item
     ))
   }
 
   const updateCartItemNotes = (tempId: string, itemNotes: string) => {
-    setCart(prev => prev.map(item => 
+    setCart(prev => prev.map(item =>
       item.tempId === tempId ? { ...item, notes: itemNotes } : item
     ))
   }
@@ -179,93 +179,90 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
         })
       }
 
-      // Auto-print if enabled and service is available
-      if (autoPrint && isServiceAvailable) {
-        try {
-          // Create a DatabaseOrder structure for printing
-          const orderForPrint: DatabaseOrder = {
-            id: newOrder.id,
-            table_id: table.id,
-            profile_id: newOrder.profile_id,
-            diners_count: dinersCount,
-            status: 'pending',
-            subtotal: calculateCartTotal(),
-            tax_amount: 0,
-            total_amount: calculateCartTotal(),
-            tip_amount: 0,
-            grand_total: calculateCartTotal(),
-            paid_amount: 0,
-            change_amount: 0,
-            notes,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            tables: {
-              id: table.id,
-              number: table.number,
-              capacity: table.capacity,
-              active: table.active,
-              created_at: table.created_at,
-              updated_at: table.updated_at
-            },
-            order_items: cart.map((item, index) => ({
-              id: index + 1,
-              order_id: newOrder.id,
-              menu_item_id: item.menu_item_id,
-              quantity: item.quantity,
-              unit_price: item.menu_item.price,
-              subtotal: item.menu_item.price * item.quantity,
-              cooking_point_id: item.cooking_point_id,
-              notes: item.notes,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              menu_items: {
-                id: item.menu_item.id,
-                name: item.menu_item.name,
-                price: item.menu_item.price,
-                base_price: item.menu_item.base_price,
-                category_id: item.menu_item.category_id,
-                active: item.menu_item.active,
-                tax: item.menu_item.tax,
-                fee: item.menu_item.fee,
-                author: item.menu_item.author,
-                has_cooking_point: item.menu_item.has_cooking_point,
-                has_sides: item.menu_item.has_sides,
-                max_sides_count: item.menu_item.max_sides_count,
-                created_at: item.menu_item.created_at,
-                updated_at: item.menu_item.updated_at,
-                menu_categories: item.menu_item.menu_categories
-              },
-              order_item_sides: item.selectedSides?.map(side => ({
-                id: 0,
-                order_item_id: index + 1,
-                side_id: side.id,
-                quantity: 1,
-                sides: side
-              }))
-            }))
+      try {
+        const dateTimeNow = format(
+          new Date(),
+          'yyyy-MM-dd HH:mm:ss',{
+            locale:es
           }
+        )
 
-          const printRequest = transformOrderToPrintRequest(orderForPrint)
-          await printOrder(printRequest)
-          
-          addToast({
-            title: 'Orden creada e impresa',
-            description: `Orden #${newOrder.id} - Mesa ${table.number}`,
-            variant: 'success'
-          })
-        } catch (printError) {
-          console.error('Error printing order:', printError)
-          addToast({
-            title: 'Orden creada',
-            description: 'La orden se creó correctamente, pero hubo un error al imprimir',
-            variant: 'warning'
-          })
+        const orderForPrint: DatabaseOrder = {
+          id: newOrder.id,
+          table_id: table.id,
+          profile_id: newOrder.profile_id,
+          diners_count: dinersCount,
+          status: 'pending',
+          subtotal: calculateCartTotal(),
+          tax_amount: 0,
+          total_amount: calculateCartTotal(),
+          tip_amount: 0,
+          grand_total: calculateCartTotal(),
+          paid_amount: 0,
+          change_amount: 0,
+          notes,
+          created_at: dateTimeNow,
+          updated_at: dateTimeNow,
+          tables: {
+            id: table.id,
+            number: table.number,
+            capacity: table.capacity,
+            active: table.active,
+            created_at: table.created_at,
+            updated_at: table.updated_at
+          },
+          order_items: cart.map((item, index) => ({
+            id: index + 1,
+            order_id: newOrder.id,
+            menu_item_id: item.menu_item_id,
+            quantity: item.quantity,
+            unit_price: item.menu_item.price,
+            subtotal: item.menu_item.price * item.quantity,
+            cooking_point_id: item.cooking_point_id,
+            notes: item.notes,
+            created_at: dateTimeNow,
+            updated_at: dateTimeNow,
+            menu_items: {
+              id: item.menu_item.id,
+              name: item.menu_item.name,
+              price: item.menu_item.price,
+              base_price: item.menu_item.base_price,
+              category_id: item.menu_item.category_id,
+              active: item.menu_item.active,
+              tax: item.menu_item.tax,
+              fee: item.menu_item.fee,
+              author: item.menu_item.author,
+              has_cooking_point: item.menu_item.has_cooking_point,
+              has_sides: item.menu_item.has_sides,
+              max_sides_count: item.menu_item.max_sides_count,
+              created_at: item.menu_item.created_at,
+              updated_at: item.menu_item.updated_at,
+              menu_categories: item.menu_item.menu_categories
+            },
+            order_item_sides: item.selectedSides?.map(side => ({
+              id: 0,
+              order_item_id: index + 1,
+              side_id: side.id,
+              quantity: 1,
+              sides: side
+            }))
+          }))
         }
-      } else {
+
+        const printRequest = transformOrderToPrintRequest(orderForPrint)
+        await printOrder(printRequest)
+
         addToast({
-          title: 'Orden creada',
+          title: 'Orden creada e impresa',
           description: `Orden #${newOrder.id} - Mesa ${table.number}`,
           variant: 'success'
+        })
+      } catch (printError) {
+        console.error('Error printing order:', printError)
+        addToast({
+          title: 'Orden creada',
+          description: 'La orden se creó correctamente, pero hubo un error al imprimir',
+          variant: 'warning'
         })
       }
 
@@ -369,21 +366,21 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
                 {filteredMenuItems.map((item) => {
                   const quantityInCart = getItemQuantityInCart(item.id)
                   return (
-                    <Card 
-                      key={item.id} 
+                    <Card
+                      key={item.id}
                       className="cursor-pointer hover:shadow-md transition-shadow hover:bg-gray-50"
                       onClick={() => addToCart(item)}
                     >
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm flex items-center gap-2">
-                           {item.name}
-                           {item.has_cooking_point && (
-                             <ChefHat className="h-3 w-3 text-orange-500" />
-                           )}
-                           {item.has_sides && (
-                             <Utensils className="h-3 w-3 text-blue-500" />
-                           )}
-                         </CardTitle>
+                          {item.name}
+                          {item.has_cooking_point && (
+                            <ChefHat className="h-3 w-3 text-orange-500" />
+                          )}
+                          {item.has_sides && (
+                            <Utensils className="h-3 w-3 text-blue-500" />
+                          )}
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="flex justify-between items-center">
@@ -402,7 +399,7 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
                               <Plus className="h-4 w-4" />
                             </Button>
                             {quantityInCart > 0 && (
-                              <Badge 
+                              <Badge
                                 className="absolute -top-2 -right-2 bg-green-600 text-white min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-bold"
                               >
                                 {quantityInCart}
@@ -556,32 +553,11 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <PrintStatusIndicator />
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                       id="auto-print"
-                       checked={autoPrint}
-                       onCheckedChange={(checked) => setAutoPrint(checked === true)}
-                       disabled={!isServiceAvailable}
-                     />
-                    <label
-                      htmlFor="auto-print"
-                      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
-                        !isServiceAvailable ? 'text-muted-foreground' : ''
-                      }`}
-                    >
-                      Imprimir automáticamente
-                    </label>
-                  </div>
-                </div>
-                
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={onCancel} className="flex-1">
                     Cancelar
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleCreateOrder}
                     disabled={cart.length === 0 || createOrder.isPending || addOrderItem.isPending}
                     className="flex-1"
