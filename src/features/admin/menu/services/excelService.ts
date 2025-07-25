@@ -194,8 +194,8 @@ class ExcelService {
   async importMenuItems(
     file: File, 
     categories: MenuCategory[], 
-    sides: Side[], 
-    cookingPoints: CookingPoint[],
+    _sides: Side[], 
+    _cookingPoints: CookingPoint[],
     onProgress?: (progress: number) => void
   ): Promise<ExcelImportResult> {
     return new Promise((resolve) => {

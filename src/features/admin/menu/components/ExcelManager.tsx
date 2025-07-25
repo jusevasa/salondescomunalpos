@@ -115,7 +115,7 @@ export default function ExcelManager({ onClose }: ExcelManagerProps) {
 
   const handleDownloadTemplate = async () => {
     try {
-      await excelService.downloadTemplate(categories, sides, cookingPoints)
+      await excelService.downloadTemplate(categories)
     } catch (error) {
       console.error('Error descargando plantilla:', error)
       alert('Error al descargar la plantilla. Por favor, intenta de nuevo.')
