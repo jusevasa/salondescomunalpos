@@ -90,11 +90,14 @@ export default function ExcelManager({ onClose }: ExcelManagerProps) {
 
   const isLoading = loadingItems || loadingCategories || loadingSides || loadingCookingPoints || loadingPrintStations
 
-  // Mutation para crear items importados
-  const createItemMutation = useMutation({
-    mutationFn: menuItemsService.createItem,
+  // Mutation para crear/actualizar items importados
+  const upsertItemMutation = useMutation({
+    mutationFn: menuItemsService.upsertItem,
     onSuccess: () => {
+      // Invalidar múltiples queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['menu-items'] })
+      queryClient.invalidateQueries({ queryKey: ['menu-items-simple'] })
+      queryClient.invalidateQueries({ queryKey: ['menu-stats'] })
     }
   })
 
@@ -148,23 +151,86 @@ export default function ExcelManager({ onClose }: ExcelManagerProps) {
 
       setImportResult(result)
 
-      // Si la importación fue exitosa, crear los items
-      if (result.success && result.data) {
-        for (const item of result.data) {
+      // Si la importación fue exitosa, crear/actualizar los items
+      if (result.success && result.data && result.data.length > 0) {
+        let successCount = 0
+        let errorCount = 0
+        const errors: string[] = []
+
+        for (let i = 0; i < result.data.length; i++) {
+          const item = result.data[i]
           try {
-            await createItemMutation.mutateAsync(item)
+            // Validación adicional antes de enviar a Supabase
+            if (!item.name || item.name.trim().length === 0) {
+              throw new Error('Nombre es requerido')
+            }
+            
+            if (!item.price || item.price <= 0) {
+              throw new Error('Precio debe ser mayor a 0')
+            }
+            
+            if (!item.category_id) {
+              throw new Error('Categoría es requerida')
+            }
+            
+            if (!item.author || item.author.trim().length === 0) {
+              throw new Error('Autor es requerido')
+            }
+
+            console.log(`Procesando item ${i + 1}/${result.data.length}:`, item)
+            
+            await upsertItemMutation.mutateAsync(item)
+            successCount++
+            
+            console.log(`✅ Item "${item.name}" procesado exitosamente`)
+            
+            // Actualizar progreso de creación
+            const creationProgress = Math.round(((i + 1) / result.data.length) * 100)
+            setImportProgress(creationProgress)
           } catch (error) {
-            console.error('Error creando item:', error)
+            errorCount++
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            const detailedError = `Error procesando "${item.name}": ${errorMessage}`
+            errors.push(detailedError)
+            console.error('❌ Error procesando item:', {
+              item,
+              error: errorMessage,
+              fullError: error
+            })
           }
         }
+
+        // Invalidar todas las queries relacionadas al final
+        await queryClient.invalidateQueries({ queryKey: ['menu-items'] })
+        await queryClient.invalidateQueries({ queryKey: ['menu-items-simple'] })
+        await queryClient.invalidateQueries({ queryKey: ['menu-stats'] })
+        await queryClient.invalidateQueries({ queryKey: ['categories-simple'] })
+
+        // Actualizar el resultado con información de creación
+        setImportResult({
+          ...result,
+          success: successCount > 0,
+          errors: errors.length > 0 ? [...(result.errors || []), ...errors] : result.errors,
+          validRows: successCount,
+          totalRows: result.totalRows
+        })
+
+        // Mostrar mensaje de éxito
+        if (successCount > 0) {
+          alert(`✅ Importación completada: ${successCount} items procesados exitosamente (creados/actualizados)${errorCount > 0 ? `, ${errorCount} errores` : ''}`)
+        }
+      } else {
+        alert('❌ No se encontraron items válidos para importar')
       }
     } catch (error) {
+      console.error('Error en importación:', error)
       setImportResult({
         success: false,
         errors: [`Error procesando archivo: ${error}`],
         totalRows: 0,
         validRows: 0
       })
+      alert('❌ Error procesando el archivo. Verifica el formato y vuelve a intentar.')
     } finally {
       setIsImporting(false)
       setImportProgress(0)

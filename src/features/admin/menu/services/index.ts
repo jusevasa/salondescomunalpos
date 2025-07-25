@@ -244,7 +244,6 @@ export const menuItemsService = {
           item_sides (
             id,
             side_id,
-            max_quantity,
             sides (
               id,
               name
@@ -258,6 +257,34 @@ export const menuItemsService = {
       return data
     } catch (error) {
       console.error('Error fetching menu item by id:', error)
+      throw error
+    }
+  },
+
+  async getItemByName(name: string): Promise<MenuItem | null> {
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select(`
+          *,
+          category:menu_categories(id, name),
+          item_sides(
+            side:sides(id, name)
+          )
+        `)
+        .eq('name', name)
+        .single()
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows found
+          return null
+        }
+        throw error
+      }
+      return data
+    } catch (error) {
+      console.error('Error fetching menu item by name:', error)
       throw error
     }
   },
@@ -289,9 +316,29 @@ export const menuItemsService = {
       }
 
       // Fetch the complete item with relationships
-      return this.getItemById(menuItem.id)
+      return menuItemsService.getItemById(menuItem.id)
     } catch (error) {
       console.error('Error creating menu item:', error)
+      throw error
+    }
+  },
+
+  async upsertItem(itemData: MenuItemFormData): Promise<MenuItem> {
+    try {
+      // Verificar si el item ya existe por nombre
+      const existingItem = await menuItemsService.getItemByName(itemData.name)
+      
+      if (existingItem) {
+        // Si existe, actualizarlo
+        console.log(`Actualizando item existente: ${itemData.name}`)
+        return menuItemsService.updateItem(existingItem.id, itemData)
+      } else {
+        // Si no existe, crearlo
+        console.log(`Creando nuevo item: ${itemData.name}`)
+        return menuItemsService.createItem(itemData)
+      }
+    } catch (error) {
+      console.error('Error upserting menu item:', error)
       throw error
     }
   },
@@ -334,7 +381,7 @@ export const menuItemsService = {
       }
 
       // Fetch the complete updated item with relations
-      return this.getItemById(id)
+      return menuItemsService.getItemById(id)
     } catch (error) {
       console.error('Error updating menu item:', error)
       throw error
