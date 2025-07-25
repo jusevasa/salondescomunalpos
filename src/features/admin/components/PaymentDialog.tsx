@@ -33,7 +33,6 @@ import { usePaymentMethods, useProcessPayment, useInvoiceData, usePrintInvoiceFr
 import { paymentSchema, cashPaymentSchema } from '@/lib/validations/payment'
 import type { PaymentFormData, CashPaymentFormData } from '@/lib/validations/payment'
 import type { Order } from '../types'
-import { useOrderManagement } from '@/features/waiter/hooks/useOrderManagement'
 import { useTableStatus } from '@/features/waiter/hooks/useTableStatus'
 
 interface PaymentDialogProps {
