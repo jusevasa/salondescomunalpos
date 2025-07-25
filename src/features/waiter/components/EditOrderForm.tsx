@@ -459,6 +459,7 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
                               size="sm"
                               onClick={() => updateCartItemCookingPoint(item.tempId, point.id)}
                               className="text-xs h-6"
+                              disabled={item.isExisting}
                             >
                               {point.name}
                             </Button>
@@ -484,7 +485,7 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
                                 size="sm"
                                 onClick={() => toggleSideForItem(item.tempId, side.id)}
                                 className="text-xs h-6"
-                                disabled={!isSelected && !canSelect}
+                                disabled={!isSelected && !canSelect || item.isExisting}
                               >
                                 {side.name}
                               </Button>

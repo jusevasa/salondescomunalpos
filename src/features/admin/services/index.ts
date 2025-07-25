@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/config/supabase'
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 
@@ -24,10 +24,18 @@ import type {
 export const ordersService = {
   async getTodayOrders(filters?: OrderFilters): Promise<OrdersResponse> {
     try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      const today = new Date();
+      const startOfToday = startOfDay(today);
+      const endOfToday = endOfDay(today);
+
+      const todayStart = format(startOfToday, 'yyyy-MM-dd HH:mm:ss', {
+        locale: es,
+      });
+
+      const todayEnd = format(endOfToday, 'yyyy-MM-dd HH:mm:ss', {
+        locale: es,
+      });
 
       let query = supabase
         .from('orders')
@@ -58,8 +66,8 @@ export const ordersService = {
             subtotal
           )
         `)
-        .gte('created_at', today.toISOString())
-        .lt('created_at', tomorrow.toISOString())
+        .gte('created_at', todayStart)
+        .lte('created_at', todayEnd)
         .order('created_at', { ascending: false })
 
       if (filters?.status) {
