@@ -3,12 +3,17 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { useTables } from '../hooks/useTables'
-import { Users, Clock, Search } from 'lucide-react'
+import { useOrders } from '../hooks/useOrders'
+import { Users, Clock, Search, ShoppingCart } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router'
+import type { Table } from '../types'
 
 export default function TablesView() {
   const { data: tables, isLoading, error } = useTables()
+  const { data: orders } = useOrders()
   const [searchTerm, setSearchTerm] = useState('')
+  const navigate = useNavigate()
 
   // Filtrar mesas basado en el término de búsqueda
   const filteredTables = useMemo(() => {
@@ -19,6 +24,36 @@ export default function TablesView() {
       table.capacity.toString().includes(searchTerm.trim())
     )
   }, [tables, searchTerm])
+
+  // Función para obtener el estado de una mesa
+  const getTableStatus = (tableId: number) => {
+    if (!orders) return { status: 'available', order: null }
+    
+    const activeOrder = orders.find(order => 
+      order.table_id === tableId && 
+      order.status !== 'paid' && 
+      order.status !== 'cancelled'
+    )
+    
+    if (activeOrder) {
+      return { status: 'occupied', order: activeOrder }
+    }
+    
+    return { status: 'available', order: null }
+  }
+
+  // Función para manejar el clic en una mesa
+  const handleTableClick = (table: Table) => {
+    const tableStatus = getTableStatus(table.id)
+    
+    if (tableStatus.status === 'occupied' && tableStatus.order) {
+      // Si la mesa está ocupada, navegar a editar orden
+      navigate(`/waiter/edit-order/${tableStatus.order.id}`)
+    } else {
+      // Si la mesa está libre, navegar a crear orden
+      navigate(`/waiter/create-order/${table.id}`)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -78,33 +113,59 @@ export default function TablesView() {
       {/* Grid de mesas */}
       {filteredTables && filteredTables.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredTables.map((table) => (
-            <Card 
-              key={table.id} 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between">
-                  <span>Mesa {table.number}</span>
-                  <Badge variant="outline" className="text-xs">
-                    Disponible
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>Capacidad: {table.capacity} personas</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                  <Clock className="h-4 w-4" />
-                  <span>Libre</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {filteredTables.map((table) => {
+            const tableStatus = getTableStatus(table.id)
+            const isOccupied = tableStatus.status === 'occupied'
+            
+            return (
+              <Card 
+                key={table.id} 
+                className={`hover:shadow-md transition-shadow cursor-pointer ${
+                  isOccupied ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'
+                }`}
+                onClick={() => handleTableClick(table)}
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Mesa {table.number}</span>
+                    <Badge 
+                      variant={isOccupied ? "destructive" : "outline"} 
+                      className="text-xs"
+                    >
+                      {isOccupied ? 'Ocupada' : 'Disponible'}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span>Capacidad: {table.capacity} personas</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                    {isOccupied ? (
+                      <>
+                        <ShoppingCart className="h-4 w-4" />
+                        <span>Orden #{tableStatus.order?.id}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-4 w-4" />
+                        <span>Libre</span>
+                      </>
+                    )}
+                  </div>
+                  {isOccupied && tableStatus.order && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {tableStatus.order.diners_count} comensales
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
+
     </div>
   )
 }

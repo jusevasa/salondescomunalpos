@@ -14,6 +14,8 @@ import {
   AdminUsersPage,
   WaiterPage,
 } from '@/pages'
+import CreateOrderPage from '@/pages/waiter/CreateOrderPage'
+import EditOrderPage from '@/pages/waiter/EditOrderPage'
 import './index.css'
 import { ToastProvider } from './components/ui/toast'
 
@@ -44,6 +46,22 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={['waiter', 'admin']}>
         <WaiterPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/waiter/create-order/:tableId',
+    element: (
+      <ProtectedRoute allowedRoles={['waiter', 'admin']}>
+        <CreateOrderPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/waiter/edit-order/:orderId',
+    element: (
+      <ProtectedRoute allowedRoles={['waiter', 'admin']}>
+        <EditOrderPage />
       </ProtectedRoute>
     ),
   },
