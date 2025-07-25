@@ -297,7 +297,7 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
                             step="100"
                             placeholder="Ingrese el monto recibido"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
                           />
                         </FormControl>
                         <FormMessage />

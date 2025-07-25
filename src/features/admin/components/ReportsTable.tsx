@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon, UsersIcon } from 'lucide-react'
+import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon } from 'lucide-react'
 import { useSalesReport } from '../hooks'
 import type { ReportsFilters } from '../types'
 
@@ -104,10 +104,10 @@ export default function ReportsTable() {
       {/* Métricas principales */}
       {reportData && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Categorías</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Ventas</CardTitle>
                 <PieChartIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -135,17 +135,6 @@ export default function ReportsTable() {
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(reportData.total_revenue)}</div>
                 <p className="text-xs text-muted-foreground">Ingresos totales</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Categorías Activas</CardTitle>
-                <UsersIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{reportData.categories_sales.length}</div>
-                <p className="text-xs text-muted-foreground">Con ventas</p>
               </CardContent>
             </Card>
           </div>

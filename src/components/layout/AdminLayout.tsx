@@ -20,10 +20,8 @@ import {
   ShoppingCart, 
   Users, 
   BarChart3, 
-  Settings, 
   LogOut,
   ChefHat,
-  Receipt,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -51,11 +49,6 @@ const menuItems = [
     title: "Reportes",
     url: "/admin/reports",
     icon: BarChart3,
-  },
-  {
-    title: "Facturas",
-    url: "/admin/invoices",
-    icon: Receipt,
   },
 ]
 
@@ -100,21 +93,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            <SidebarGroup>
-              <SidebarGroupLabel>Configuración</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link to="/admin/settings">
-                        <Settings className="h-4 w-4" />
-                        <span>Configuración</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
           </SidebarContent>
 
           <SidebarFooter className="border-t border-sidebar-border">

@@ -6,7 +6,7 @@ import { OrdersTable, useOrders, useOrdersSubscription } from '@/features/admin'
 import type { OrderFilters } from '@/features/admin'
 
 export default function AdminOrdersPage() {
-  const [filters, setFilters] = useState<OrderFilters>({})
+  const [filters] = useState<OrderFilters>({})
   const { data: ordersData, isLoading, error } = useOrders(filters)
 
   useOrdersSubscription()
