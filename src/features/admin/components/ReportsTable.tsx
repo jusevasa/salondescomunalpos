@@ -274,13 +274,18 @@ export default function ReportsTable() {
                                 {order.order_items?.length || 0} productos
                               </span>
                             </div>
-
+                            <div className="flex justify-between text-sm">
+                              <span>Propina:</span>
+                              <span className="font-medium">
+                                {formatCurrency(order.tip_amount)}
+                              </span>
+                            </div>
                             <Separator className="my-2" />
 
                             <div className="flex justify-between font-semibold">
                               <span>Total:</span>
                               <span className="text-green-600">
-                                {formatCurrency(order.total_amount)}
+                                {formatCurrency(order.grand_total)}
                               </span>
                             </div>
                           </div>
