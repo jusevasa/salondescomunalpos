@@ -13,7 +13,7 @@ export const useTables = () => {
         .from('tables')
         .select('*')
         .eq('active', true)
-        .order('number')
+        .order('id')
 
       if (error) throw error
       return data || []
