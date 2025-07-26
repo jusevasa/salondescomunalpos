@@ -50,8 +50,6 @@ export default function ReportsTable() {
     )
   }
 
-  console.log(paidOrders)
-
   return (
     <div className="space-y-6">
       {/* Filtros de fecha */}
