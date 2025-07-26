@@ -184,7 +184,7 @@ export const useOrderManagement = () => {
     if (error) throw error;
 
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const taxAmount = subtotal * 0.19; // 19% IVA
+    const taxAmount = subtotal * 0.08
     const totalAmount = subtotal + taxAmount;
 
     await supabase
