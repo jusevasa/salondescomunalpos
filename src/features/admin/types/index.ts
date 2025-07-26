@@ -182,10 +182,18 @@ export interface CategorySalesReport {
 
 export interface AuthorSalesReport {
   author: string
-  category_name: string
   total_amount: number
+  total_commission: number
+  net_amount: number
   total_quantity: number
   items_count: number
+  categories: {
+    category_name: string
+    amount: number
+    commission: number
+    quantity: number
+    items_count: number
+  }[]
 }
 
 export interface SalesReportData {

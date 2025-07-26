@@ -171,27 +171,54 @@ export default function ReportsTable() {
           {/* Ventas por autor */}
           <Card>
             <CardHeader>
-              <CardTitle>Detalle de Ventas por Autor</CardTitle>
+              <CardTitle>Ventas por Autor</CardTitle>
               <CardDescription>
-                Ventas detalladas por autor y categoría (sin propinas)
+                Detalle de ventas por autor con descuento de comisión
               </CardDescription>
             </CardHeader>
             <CardContent>
               {reportData.authors_sales.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {reportData.authors_sales.map((author, index) => (
-                    <div key={`${author.author}-${author.category_name}-${index}`} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{author.author}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {author.category_name} • {author.total_quantity} items • {author.items_count} órdenes
-                        </p>
+                    <div key={`${author.author}-${index}`} className="border rounded-lg p-4">
+                      {/* Header del autor */}
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-lg">{author.author}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {author.total_quantity} items vendidos • {author.items_count} órdenes
+                          </p>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <div className="text-sm text-muted-foreground">Total Bruto</div>
+                          <div className="font-bold text-lg">{formatCurrency(author.total_amount)}</div>
+                          <div className="text-sm text-red-600">- {formatCurrency(author.total_commission)} (comisión)</div>
+                          <div className="text-sm font-bold text-green-600 border-t pt-1">
+                            = {formatCurrency(author.net_amount)} neto
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold">{formatCurrency(author.total_amount)}</div>
-                        <Badge variant="outline">
-                          {((author.total_amount / reportData.total_categories_amount) * 100).toFixed(1)}%
-                        </Badge>
+
+                      {/* Detalle por categorías */}
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-sm text-muted-foreground mb-2">Detalle por categorías:</h5>
+                        {author.categories.map((category, catIndex) => (
+                          <div key={`${category.category_name}-${catIndex}`} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                            <div className="flex-1">
+                              <span className="font-medium">{category.category_name}</span>
+                              <p className="text-xs text-muted-foreground">
+                                {category.quantity} items • {category.items_count} órdenes
+                              </p>
+                            </div>
+                            <div className="text-right text-sm">
+                              <div>{formatCurrency(category.amount)}</div>
+                              <div className="text-red-600">- {formatCurrency(category.commission)}</div>
+                              <div className="font-medium text-green-600">
+                                = {formatCurrency(category.amount - category.commission)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}

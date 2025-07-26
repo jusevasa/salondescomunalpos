@@ -676,6 +676,7 @@ export const reportsService = {
               name,
               author,
               category_id,
+              fee,
               menu_categories (
                 id,
                 name
@@ -744,7 +745,7 @@ export const reportsService = {
         })
       })
 
-      // Calculate authors sales by category
+      // Calculate authors sales grouped by author only
       const authorsMap = new Map<string, AuthorSalesReport>()
       
       orders.forEach(order => {
@@ -760,6 +761,7 @@ export const reportsService = {
               name: string
               author: string
               category_id: number
+              fee: number
               menu_categories?: {
                 id: number
                 name: string
@@ -770,24 +772,59 @@ export const reportsService = {
           const menuItem = orderItem.menu_items
           const author = menuItem?.author
           const categoryName = menuItem?.menu_categories?.name
+          const fee = menuItem?.fee || 0
           
           if (author && categoryName) {
-            const key = `${author}-${categoryName}`
-            const existing = authorsMap.get(key) || {
+            // Calculate commission for this item
+            // If fee is 10, the commission is 10% of the subtotal (1/fee)
+            // Commission = subtotal / fee
+            const itemCommission = fee > 1 ? orderItem.subtotal / fee : 0
+            
+            // Get or create author entry
+            const existing = authorsMap.get(author) || {
               author,
-              category_name: categoryName,
               total_amount: 0,
+              total_commission: 0,
+              net_amount: 0,
               total_quantity: 0,
-              items_count: 0
+              items_count: 0,
+              categories: []
             }
 
+            // Update totals
             existing.total_amount += orderItem.subtotal
+            existing.total_commission += itemCommission
+            existing.net_amount = existing.total_amount - existing.total_commission
             existing.total_quantity += orderItem.quantity
             existing.items_count += 1
 
-            authorsMap.set(key, existing)
+            // Find or create category entry
+            let categoryEntry = existing.categories.find(cat => cat.category_name === categoryName)
+            if (!categoryEntry) {
+              categoryEntry = {
+                category_name: categoryName,
+                amount: 0,
+                commission: 0,
+                quantity: 0,
+                items_count: 0
+              }
+              existing.categories.push(categoryEntry)
+            }
+
+            // Update category totals
+            categoryEntry.amount += orderItem.subtotal
+            categoryEntry.commission += itemCommission
+            categoryEntry.quantity += orderItem.quantity
+            categoryEntry.items_count += 1
+
+            authorsMap.set(author, existing)
           }
         })
+      })
+
+      // Sort categories within each author by amount
+      authorsMap.forEach(author => {
+        author.categories.sort((a, b) => b.amount - a.amount)
       })
 
       return {
