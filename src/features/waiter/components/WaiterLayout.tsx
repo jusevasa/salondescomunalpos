@@ -117,15 +117,15 @@ export default function WaiterLayout({ children }: WaiterLayoutProps) {
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col">
-          <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <main className="flex-1 flex flex-col h-screen">
+          <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
             <div className="flex h-14 items-center gap-4 px-4">
               <SidebarTrigger />
               <div className="flex-1" />
             </div>
           </header>
           
-          <div className="flex-1 p-6">
+          <div className="flex-1 overflow-hidden">
             {renderContent()}
           </div>
         </main>
