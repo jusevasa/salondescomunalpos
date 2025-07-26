@@ -29,6 +29,10 @@ export interface MenuItem {
   updated_at: string
   category?: MenuCategory
   item_sides?: ItemSide[]
+  menu_categories?: {
+    id: number
+    name: string
+  }
 }
 
 export interface Side {
