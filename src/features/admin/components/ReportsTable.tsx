@@ -1,37 +1,56 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { DateRangePicker } from '@/components/ui/date-picker'
 import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon, ReceiptIcon, ClockIcon } from 'lucide-react'
 import { useSalesReport, usePaidOrders } from '../hooks'
 import { formatCurrency } from '@/lib/utils'
+import { getTodayString, formatDateForInput, parseDate, formatDateDisplay } from '@/lib/utils/date'
 import type { ReportsFilters } from '../types'
 
 export default function ReportsTable() {
-  const today = new Date()
-  const todayStr = today.getFullYear() + '-' +
-    String(today.getMonth() + 1).padStart(2, '0') + '-' +
-    String(today.getDate()).padStart(2, '0')
+  const todayStr = getTodayString()
 
   const [filters, setFilters] = useState<ReportsFilters>({
     date_from: todayStr,
     date_to: todayStr
   })
 
+  // Estados para los date pickers
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(parseDate(todayStr) || undefined)
+  const [dateTo, setDateTo] = useState<Date | undefined>(parseDate(todayStr) || undefined)
+
   const { data: reportData, isLoading, error } = useSalesReport(filters)
   const { data: paidOrders, isLoading: isLoadingOrders, error: ordersError } = usePaidOrders(filters)
 
-  const handleDateChange = (field: keyof ReportsFilters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }))
+  const handleDateFromChange = (date: Date | undefined) => {
+    setDateFrom(date)
+    if (date) {
+      const dateStr = formatDateForInput(date)
+      setFilters(prev => ({
+        ...prev,
+        date_from: dateStr
+      }))
+    }
+  }
+
+  const handleDateToChange = (date: Date | undefined) => {
+    setDateTo(date)
+    if (date) {
+      const dateStr = formatDateForInput(date)
+      setFilters(prev => ({
+        ...prev,
+        date_to: dateStr
+      }))
+    }
   }
 
   const resetToToday = () => {
+    const today = new Date()
+    setDateFrom(today)
+    setDateTo(today)
     setFilters({
       date_from: todayStr,
       date_to: todayStr
@@ -65,24 +84,15 @@ export default function ReportsTable() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="date_from">Fecha desde</Label>
-              <Input
-                id="date_from"
-                type="date"
-                value={filters.date_from}
-                onChange={(e) => handleDateChange('date_from', e.target.value)}
-              />
-            </div>
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="date_to">Fecha hasta</Label>
-              <Input
-                id="date_to"
-                type="date"
-                value={filters.date_to}
-                onChange={(e) => handleDateChange('date_to', e.target.value)}
-              />
-            </div>
+            <DateRangePicker
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onSelectFrom={handleDateFromChange}
+              onSelectTo={handleDateToChange}
+              placeholderFrom="Fecha desde"
+              placeholderTo="Fecha hasta"
+              className="flex-1"
+            />
             <Button
               variant="outline"
               onClick={resetToToday}
@@ -343,7 +353,7 @@ export default function ReportsTable() {
       <Card>
         <CardContent className="pt-6">
           <div className="text-sm text-muted-foreground text-center">
-            Reporte generado para el período: {filters.date_from} - {filters.date_to}
+            Reporte generado para el período: {dateFrom ? formatDateDisplay(dateFrom) : filters.date_from} - {dateTo ? formatDateDisplay(dateTo) : filters.date_to}
             {isLoading && " • Cargando..."}
           </div>
         </CardContent>
