@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Users, ShoppingCart, ChefHat, Utensils, FileText } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Users, ShoppingCart, ChefHat, Utensils, FileText, Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { MenuItem, Side, CookingPoint } from '../types'
 
@@ -25,7 +27,7 @@ interface CartItem {
 interface OrderConfirmationModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: (shouldPrint: boolean) => void
   cart: CartItem[]
   dinersCount: number
   orderNotes: string
@@ -33,6 +35,8 @@ interface OrderConfirmationModalProps {
   isLoading?: boolean
   title: string
   confirmButtonText: string
+  printOrder?: boolean
+  onPrintOrderChange?: (shouldPrint: boolean) => void
 }
 
 export default function OrderConfirmationModal({
@@ -45,7 +49,9 @@ export default function OrderConfirmationModal({
   cookingPoints,
   isLoading = false,
   title,
-  confirmButtonText
+  confirmButtonText,
+  printOrder = true,
+  onPrintOrderChange
 }: OrderConfirmationModalProps) {
   const calculateTotal = () => {
     return cart.reduce((total, item) => total + (item.menu_item.price * item.quantity), 0)
@@ -55,6 +61,10 @@ export default function OrderConfirmationModal({
     if (!cookingPointId || !cookingPoints) return null
     const point = cookingPoints.find(p => p.id === cookingPointId)
     return point?.name
+  }
+
+  const handleConfirm = () => {
+    onConfirm(printOrder)
   }
 
   return (
@@ -165,6 +175,28 @@ export default function OrderConfirmationModal({
 
           <Separator />
 
+          {/* Print Option */}
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="print-order"
+                  checked={printOrder}
+                  onCheckedChange={(checked) => onPrintOrderChange?.(checked as boolean)}
+                />
+                <Label
+                  htmlFor="print-order"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir comanda automáticamente
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Separator />
+
           {/* Total */}
           <div className="flex justify-between items-center text-lg font-semibold">
             <span>Total de la orden:</span>
@@ -178,7 +210,7 @@ export default function OrderConfirmationModal({
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button onClick={onConfirm} disabled={isLoading}>
+          <Button onClick={handleConfirm} disabled={isLoading}>
             {isLoading ? 'Procesando...' : confirmButtonText}
           </Button>
         </DialogFooter>

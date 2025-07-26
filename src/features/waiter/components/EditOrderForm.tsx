@@ -38,6 +38,7 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const [shouldPrintOrder, setShouldPrintOrder] = useState(true)
 
 
   const { addOrderItem, updateOrder } = useOrderManagement()
@@ -191,7 +192,7 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
     setShowConfirmationModal(true)
   }
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = async (shouldPrint: boolean = true) => {
     if (!order) return
 
     try {
@@ -219,8 +220,8 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
         })
       }
 
-      // Always try to print new items if there are any
-      if (newItems.length > 0 && order.table) {
+      // Print new items only if shouldPrint is true and there are new items
+      if (shouldPrint && newItems.length > 0 && order.table) {
         try {
           // Create a DatabaseOrder structure for printing with only new items
           const orderForPrint: DatabaseOrder = {
@@ -679,6 +680,8 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
         isLoading={addOrderItem.isPending || updateOrder.isPending}
         title="Confirmar Actualización de Orden"
         confirmButtonText="Actualizar Orden"
+        printOrder={shouldPrintOrder}
+        onPrintOrderChange={setShouldPrintOrder}
       />
     </div>
   )

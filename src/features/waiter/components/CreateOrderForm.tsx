@@ -37,6 +37,7 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const [shouldPrintOrder, setShouldPrintOrder] = useState(true)
 
 
   const { createOrder, addOrderItem } = useOrderManagement()
@@ -156,7 +157,7 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
     setShowConfirmationModal(true)
   }
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = async (shouldPrint: boolean) => {
     try {
       // Create new order
       const newOrder = await createOrder.mutateAsync({
@@ -179,90 +180,99 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
         })
       }
 
-      try {
-        const dateTimeNow = format(
-          new Date(),
-          'yyyy-MM-dd HH:mm:ss',{
-            locale:es
-          }
-        )
+      // Only print if shouldPrint is true
+      if (shouldPrint) {
+        try {
+          const dateTimeNow = format(
+            new Date(),
+            'yyyy-MM-dd HH:mm:ss',{
+              locale:es
+            }
+          )
 
-        const orderForPrint: DatabaseOrder = {
-          id: newOrder.id,
-          table_id: table.id,
-          profile_id: newOrder.profile_id,
-          diners_count: dinersCount,
-          status: 'pending',
-          subtotal: calculateCartTotal(),
-          tax_amount: 0,
-          total_amount: calculateCartTotal(),
-          tip_amount: 0,
-          grand_total: calculateCartTotal(),
-          paid_amount: 0,
-          change_amount: 0,
-          notes,
-          created_at: dateTimeNow,
-          updated_at: dateTimeNow,
-          tables: {
-            id: table.id,
-            number: table.number,
-            capacity: table.capacity,
-            active: table.active,
-            created_at: table.created_at,
-            updated_at: table.updated_at
-          },
-          order_items: cart.map((item, index) => ({
-            id: index + 1,
-            order_id: newOrder.id,
-            menu_item_id: item.menu_item_id,
-            quantity: item.quantity,
-            unit_price: item.menu_item.base_price || item.menu_item.price,
-            subtotal: (item.menu_item.base_price || item.menu_item.price) * item.quantity,
-            cooking_point_id: item.cooking_point_id,
-            notes: item.notes,
+          const orderForPrint: DatabaseOrder = {
+            id: newOrder.id,
+            table_id: table.id,
+            profile_id: newOrder.profile_id,
+            diners_count: dinersCount,
+            status: 'pending',
+            subtotal: calculateCartTotal(),
+            tax_amount: 0,
+            total_amount: calculateCartTotal(),
+            tip_amount: 0,
+            grand_total: calculateCartTotal(),
+            paid_amount: 0,
+            change_amount: 0,
+            notes,
             created_at: dateTimeNow,
             updated_at: dateTimeNow,
-            menu_items: {
-              id: item.menu_item.id,
-              name: item.menu_item.name,
-              price: item.menu_item.price,
-              base_price: item.menu_item.base_price,
-              category_id: item.menu_item.category_id,
-              active: item.menu_item.active,
-              tax: item.menu_item.tax,
-              fee: item.menu_item.fee,
-              author: item.menu_item.author,
-              has_cooking_point: item.menu_item.has_cooking_point,
-              has_sides: item.menu_item.has_sides,
-              max_sides_count: item.menu_item.max_sides_count,
-              created_at: item.menu_item.created_at,
-              updated_at: item.menu_item.updated_at,
-              menu_categories: item.menu_item.menu_categories
+            tables: {
+              id: table.id,
+              number: table.number,
+              capacity: table.capacity,
+              active: table.active,
+              created_at: table.created_at,
+              updated_at: table.updated_at
             },
-            order_item_sides: item.selectedSides?.map(side => ({
-              id: 0,
-              order_item_id: index + 1,
-              side_id: side.id,
-              quantity: 1,
-              sides: side
+            order_items: cart.map((item, index) => ({
+              id: index + 1,
+              order_id: newOrder.id,
+              menu_item_id: item.menu_item_id,
+              quantity: item.quantity,
+              unit_price: item.menu_item.base_price || item.menu_item.price,
+              subtotal: (item.menu_item.base_price || item.menu_item.price) * item.quantity,
+              cooking_point_id: item.cooking_point_id,
+              notes: item.notes,
+              created_at: dateTimeNow,
+              updated_at: dateTimeNow,
+              menu_items: {
+                id: item.menu_item.id,
+                name: item.menu_item.name,
+                price: item.menu_item.price,
+                base_price: item.menu_item.base_price,
+                category_id: item.menu_item.category_id,
+                active: item.menu_item.active,
+                tax: item.menu_item.tax,
+                fee: item.menu_item.fee,
+                author: item.menu_item.author,
+                has_cooking_point: item.menu_item.has_cooking_point,
+                has_sides: item.menu_item.has_sides,
+                max_sides_count: item.menu_item.max_sides_count,
+                created_at: item.menu_item.created_at,
+                updated_at: item.menu_item.updated_at,
+                menu_categories: item.menu_item.menu_categories
+              },
+              order_item_sides: item.selectedSides?.map(side => ({
+                id: 0,
+                order_item_id: index + 1,
+                side_id: side.id,
+                quantity: 1,
+                sides: side
+              }))
             }))
-          }))
+          }
+
+          const printRequest = transformOrderToPrintRequest(orderForPrint)
+          await printOrder(printRequest)
+
+          addToast({
+            title: 'Orden creada e impresa',
+            description: `Orden #${newOrder.id} - Mesa ${table.number}`,
+            variant: 'success'
+          })
+        } catch (printError) {
+          console.error('Error printing order:', printError)
+          addToast({
+            title: 'Orden creada',
+            description: 'La orden se creó correctamente, pero hubo un error al imprimir',
+            variant: 'warning'
+          })
         }
-
-        const printRequest = transformOrderToPrintRequest(orderForPrint)
-        await printOrder(printRequest)
-
-        addToast({
-          title: 'Orden creada e impresa',
-          description: `Orden #${newOrder.id} - Mesa ${table.number}`,
-          variant: 'success'
-        })
-      } catch (printError) {
-        console.error('Error printing order:', printError)
+      } else {
         addToast({
           title: 'Orden creada',
-          description: 'La orden se creó correctamente, pero hubo un error al imprimir',
-          variant: 'warning'
+          description: `Orden #${newOrder.id} - Mesa ${table.number}`,
+          variant: 'success'
         })
       }
 
@@ -583,6 +593,8 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
         isLoading={createOrder.isPending || addOrderItem.isPending}
         title="Confirmar Nueva Orden"
         confirmButtonText="Crear Orden"
+        printOrder={shouldPrintOrder}
+        onPrintOrderChange={setShouldPrintOrder}
       />
     </div>
   )
