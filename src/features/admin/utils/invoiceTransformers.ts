@@ -52,9 +52,10 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
       if (dbItem.menu_items) {
         // Asegurar que todos los valores numéricos sean válidos
         const quantity = dbItem.quantity || 1
-        const unitPrice = dbItem.unit_price || 0
-        const subtotal = dbItem.subtotal || 0
-        const taxRate = dbItem.menu_items.tax || 0.19 // Usar el tax del menu_item o 19% por defecto
+        // IMPORTANTE: Para facturas usamos el price (precio final) no el unit_price (base_price)
+        const unitPrice = dbItem.menu_items.price || 0
+        const subtotal = unitPrice * quantity // Recalcular subtotal con el precio correcto
+        const taxRate = dbItem.menu_items.tax || 0.08 // Usar el tax del menu_item o 19% por defecto
         const taxAmount = subtotal * taxRate
         
         invoiceItems.push({
@@ -162,6 +163,12 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     diners_count: invoiceRequest.diners_count,
     waiter_name: invoiceRequest.waiter_name,
     items_count: invoiceRequest.items.length,
+    items_detail: invoiceRequest.items.map(item => ({
+      name: item.menu_item_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      subtotal: item.subtotal
+    })),
     payment_method: invoiceRequest.payment.method,
     totals: {
       subtotal: invoiceRequest.subtotal,
