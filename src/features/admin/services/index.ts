@@ -19,7 +19,6 @@ import type {
   SalesReportData,
   CategorySalesReport,
   AuthorSalesReport,
-  Order
 } from '../types'
 
 export const ordersService = {
