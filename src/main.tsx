@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from "@vercel/analytics/next"
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ProtectedRoute from '@/router/guards/ProtectedRoute'
@@ -122,6 +123,7 @@ createRoot(document.getElementById('root')!).render(
     <ToastProvider>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+        <Analytics/>
       </QueryClientProvider>
     </ToastProvider>
   </StrictMode>
