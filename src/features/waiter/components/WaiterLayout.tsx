@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { useSidebarPersistence } from '@/hooks/useSidebarPersistence'
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +35,7 @@ interface WaiterLayoutProps {
 export default function WaiterLayout({ children }: WaiterLayoutProps) {
   const { user, signOut } = useAuth()
   const [currentView, setCurrentView] = useState<WaiterView>('tables')
+  const { isOpen, setIsOpen, isInitialized } = useSidebarPersistence(false)
 
   const handleLogout = () => {
     signOut()
@@ -66,7 +68,10 @@ export default function WaiterLayout({ children }: WaiterLayoutProps) {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider 
+      open={isInitialized ? isOpen : false} 
+      onOpenChange={setIsOpen}
+    >
       <div className="flex min-h-screen w-full">
         <Sidebar>
           <SidebarHeader className="border-b border-sidebar-border">
