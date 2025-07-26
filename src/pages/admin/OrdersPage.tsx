@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { OrdersTable, useOrders, useOrdersSubscription } from '@/features/admin'
+import { formatCurrency } from '@/lib/utils'
 import type { OrderFilters } from '@/features/admin'
 
 export default function AdminOrdersPage() {
@@ -13,9 +14,8 @@ export default function AdminOrdersPage() {
 
   const orders = ordersData?.orders.filter(order => order.payment_status != 'paid') || []
   const pendingOrders = orders.filter(order => order.payment_status === 'pending')
-  const paidOrders = orders.filter(order => order.payment_status === 'paid')
+  const paidOrders = ordersData?.orders.filter(order => order.status === 'paid') || []
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total_amount, 0)
-
 
   if (error) {
     return (
@@ -109,7 +109,7 @@ export default function AdminOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalRevenue.toLocaleString()}
+              {formatCurrency(totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">
               de órdenes pagadas
@@ -133,4 +133,4 @@ export default function AdminOrdersPage() {
       </div>
     </div>
   )
-} 
+}

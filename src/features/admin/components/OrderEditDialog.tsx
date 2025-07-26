@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useToast, ToastContainer } from '@/components/ui/toast'
+import { formatCurrency } from '@/lib/utils'
 import {
   Edit3,
   Minus,
@@ -273,7 +274,7 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
                     <p className="text-sm text-blue-800">
                       <strong>Información de la orden:</strong><br />
                       ID: {order.id}<br />
-                      Total: ${order.total_amount.toLocaleString()}<br />
+                      Total: {formatCurrency(order.total_amount)}<br />
                       Estado: {order.status}
                     </p>
                   </div>
@@ -298,7 +299,7 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
                             {isChanged && <Badge variant="secondary">Modificado</Badge>}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            ${originalItem.price.toLocaleString()} c/u
+                            {formatCurrency(originalItem.price)} c/u
                             {originalItem.category && ` • ${originalItem.category}`}
                           </div>
                         </div>
@@ -341,11 +342,11 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
                           {/* Item Total */}
                           <div className="text-right min-w-[60px] sm:min-w-[80px]">
                             <div className="font-medium text-sm sm:text-base">
-                              ${itemTotal.toLocaleString()}
+                              {formatCurrency(itemTotal)}
                             </div>
                             {isChanged && (
                               <div className="text-xs text-muted-foreground">
-                                Antes: ${(originalItem.price * editItem.originalQuantity).toLocaleString()}
+                                Antes: {formatCurrency(originalItem.price * editItem.originalQuantity)}
                               </div>
                             )}
                           </div>
@@ -377,22 +378,22 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span>${subtotal.toLocaleString()}</span>
+                    <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Impuestos (8%):</span>
-                    <span>${tax.toLocaleString()}</span>
+                    <span>{formatCurrency(tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-medium">
                     <span>Total:</span>
-                    <span>${total.toLocaleString()}</span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
 
                   {hasChanges && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Total Original:</span>
-                      <span className="text-muted-foreground">${order.total_amount.toLocaleString()}</span>
+                      <span className="text-muted-foreground">{formatCurrency(order.total_amount)}</span>
                     </div>
                   )}
 
@@ -402,7 +403,7 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
                         {savings > 0 ? "Ahorro:" : "Incremento:"}
                       </span>
                       <span className={savings > 0 ? "text-green-600" : "text-red-600"}>
-                        {savings > 0 ? "-" : "+"}${Math.abs(savings).toLocaleString()}
+                        {savings > 0 ? "-" : "+"}{formatCurrency(Math.abs(savings))}
                       </span>
                     </div>
                   )}
