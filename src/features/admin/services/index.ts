@@ -3,11 +3,11 @@ import { format, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 
-import type {  
-  OrderFilters, 
-  OrdersResponse, 
-  DatabaseOrderItem, 
-  PaymentMethod, 
+import type {
+  OrderFilters,
+  OrdersResponse,
+  DatabaseOrderItem,
+  PaymentMethod,
   ProcessPaymentRequest,
   OrderItemToAdd,
   Payment,
@@ -120,7 +120,7 @@ export const ordersService = {
 
   subscribeToOrders(callback: (payload: { eventType: string; new: unknown; old: unknown }) => void) {
     console.log('Setting up orders subscription...')
-    
+
     const channel = supabase
       .channel('orders_realtime', {
         config: {
@@ -169,7 +169,7 @@ export const ordersService = {
     // First get a random table and the current admin user
     const { data: tables } = await supabase.from('tables').select('id').eq('active', true).limit(10)
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!tables?.length || !user) {
       throw new Error('No tables available or user not authenticated')
     }
@@ -346,7 +346,7 @@ export const ordersService = {
         const unitPrice = menuItem?.base_price || item.unit_price
         return sum + (unitPrice * item.quantity)
       }, 0)
-      
+
       // Calculate tax based on each item's tax rate using base_price
       const taxAmount = orderItems.reduce((sum, item) => {
         const menuItem = item.menu_items as any
@@ -355,7 +355,7 @@ export const ordersService = {
         const itemSubtotal = unitPrice * item.quantity
         return sum + (itemSubtotal * itemTaxRate)
       }, 0)
-      
+
       const totalAmount = subtotal + taxAmount
 
       // Update order totals
@@ -434,7 +434,7 @@ export const paymentService = {
       const totalToPay = order.total_amount + tipAmount
       const changeAmount = request.receivedAmount ? Math.max(0, request.receivedAmount - totalToPay) : 0
 
-      const dateTimeNow = format(new Date(),'yyyy-MM-dd HH:mm:ss',{locale: es})
+      const dateTimeNow = format(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: es })
 
       const paymentData = {
         order_id: request.orderId,
@@ -614,7 +614,7 @@ export const tablesService = {
 
   subscribeToTables(callback: (payload: { eventType: string; new: unknown; old: unknown }) => void) {
     console.log('Setting up tables subscription...')
-    
+
     const channel = supabase
       .channel('tables_realtime', {
         config: {
@@ -702,9 +702,17 @@ export const reportsService = {
 
       // Calculate categories sales
       const categoriesMap = new Map<number, CategorySalesReport>()
-      
+
       orders.forEach(order => {
         const orderItems = order.order_items as unknown[]
+        
+        // Calculate total subtotal for this order to determine proportions
+        const orderSubtotalSum = orderItems?.reduce((sum: number, item: any) => {
+          const orderItem = item as { subtotal: number }
+          return sum + (orderItem.subtotal || 0)
+        }, 0) || 0
+        const orderTotalAmount = order.total_amount || 0
+        
         orderItems?.forEach((item: unknown) => {
           const orderItem = item as {
             id: number
@@ -736,7 +744,13 @@ export const reportsService = {
               items_count: 0
             }
 
-            existing.total_amount += orderItem.subtotal
+            // Calculate proportional amount based on order's total_amount
+            // This ensures the sum of categories equals total_categories_amount
+            const proportionalAmount = orderSubtotalSum > 0 
+              ? (orderItem.subtotal / orderSubtotalSum) * orderTotalAmount
+              : orderItem.subtotal
+
+            existing.total_amount += proportionalAmount
             existing.total_quantity += orderItem.quantity
             existing.items_count += 1
 
@@ -747,7 +761,7 @@ export const reportsService = {
 
       // Calculate authors sales grouped by author only
       const authorsMap = new Map<string, AuthorSalesReport>()
-      
+
       orders.forEach(order => {
         const orderItems = order.order_items as unknown[]
         orderItems?.forEach((item: unknown) => {
@@ -768,18 +782,18 @@ export const reportsService = {
               }
             }
           }
-          
+
           const menuItem = orderItem.menu_items
           const author = menuItem?.author
           const categoryName = menuItem?.menu_categories?.name
           const fee = menuItem?.fee || 0
-          
+
           if (author && categoryName) {
             // Calculate commission for this item
             // If fee is 10, the commission is 10% of the subtotal (1/fee)
             // Commission = subtotal / fee
             const itemCommission = fee > 1 ? orderItem.subtotal / fee : 0
-            
+
             // Get or create author entry
             const existing = authorsMap.get(author) || {
               author,
