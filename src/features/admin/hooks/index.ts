@@ -227,6 +227,15 @@ export const useSalesReport = (filters: ReportsFilters) => {
   })
 }
 
+export const usePaidOrders = (filters: ReportsFilters) => {
+  return useQuery({
+    queryKey: ['paid-orders', filters],
+    queryFn: () => reportsService.getPaidOrders(filters),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!(filters.date_from && filters.date_to),
+  })
+}
+
 // Invoice and printing hooks
 export { useInvoiceData } from './useInvoiceData'
 export { usePrintInvoiceFromPayment } from './usePrintInvoiceFromPayment'

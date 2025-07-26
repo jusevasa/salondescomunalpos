@@ -18,7 +18,8 @@ import type {
   ReportsFilters,
   SalesReportData,
   CategorySalesReport,
-  AuthorSalesReport
+  AuthorSalesReport,
+  Order
 } from '../types'
 
 export const ordersService = {
@@ -799,6 +800,74 @@ export const reportsService = {
         date_from,
         date_to
       }
+    } catch (error) {
+      console.error('Service error:', error)
+      throw error
+    }
+  },
+
+  async getPaidOrders(filters: ReportsFilters) {
+    try {
+      const { date_from, date_to } = filters
+
+      // Adjust dates to include full day range
+      const startDate = `${date_from} 00:00:00`
+      const endDate = `${date_to} 23:59:59`
+
+      // Get paid orders within date range with their details
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          created_at,
+          table_id,
+          profile_id,
+          diners_count,
+          status,
+          subtotal,
+          tax_amount,
+          total_amount,
+          tip_amount,
+          grand_total,
+          paid_amount,
+          change_amount,
+          notes,
+          tables (
+            id,
+            number
+          ),
+          profiles (
+            id,
+            name
+          ),
+          order_items (
+            id,
+            quantity,
+            unit_price,
+            subtotal,
+            menu_items (
+              id,
+              name,
+              price,
+              category_id,
+              menu_categories (
+                id,
+                name
+              )
+            )
+          )
+        `)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+        .eq('status', 'paid')
+        .order('created_at', { ascending: false })
+
+      if (ordersError) {
+        console.error('Error fetching paid orders:', ordersError)
+        throw new Error(`Error al cargar las órdenes pagadas: ${ordersError.message}`)
+      }
+
+      return ordersData || []
     } catch (error) {
       console.error('Service error:', error)
       throw error

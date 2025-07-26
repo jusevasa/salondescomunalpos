@@ -5,14 +5,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon } from 'lucide-react'
-import { useSalesReport } from '../hooks'
+import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon, ReceiptIcon, ClockIcon } from 'lucide-react'
+import { useSalesReport, usePaidOrders } from '../hooks'
+import { formatCurrency } from '@/lib/utils'
 import type { ReportsFilters } from '../types'
 
 export default function ReportsTable() {
   const today = new Date()
-  const todayStr = today.getFullYear() + '-' + 
-    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+  const todayStr = today.getFullYear() + '-' +
+    String(today.getMonth() + 1).padStart(2, '0') + '-' +
     String(today.getDate()).padStart(2, '0')
 
   const [filters, setFilters] = useState<ReportsFilters>({
@@ -21,15 +22,7 @@ export default function ReportsTable() {
   })
 
   const { data: reportData, isLoading, error } = useSalesReport(filters)
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
+  const { data: paidOrders, isLoading: isLoadingOrders, error: ordersError } = usePaidOrders(filters)
 
   const handleDateChange = (field: keyof ReportsFilters, value: string) => {
     setFilters(prev => ({
@@ -56,6 +49,8 @@ export default function ReportsTable() {
       </Card>
     )
   }
+
+  console.log(paidOrders)
 
   return (
     <div className="space-y-6">
@@ -90,8 +85,8 @@ export default function ReportsTable() {
                 onChange={(e) => handleDateChange('date_to', e.target.value)}
               />
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={resetToToday}
               className="whitespace-nowrap"
             >
@@ -213,17 +208,118 @@ export default function ReportsTable() {
 
           <Separator />
 
-          {/* Información del reporte */}
+          {/* Órdenes Pagadas */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground text-center">
-                Reporte generado para el período: {filters.date_from} - {filters.date_to}
-                {isLoading && " • Cargando..."}
-              </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ReceiptIcon className="h-5 w-5" />
+                Órdenes Pagadas
+              </CardTitle>
+              <CardDescription>
+                Listado de todas las órdenes pagadas en el período seleccionado
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingOrders ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-600">Cargando órdenes...</p>
+                </div>
+              ) : ordersError ? (
+                <div className="text-center py-8">
+                  <p className="text-red-600">Error al cargar las órdenes</p>
+                </div>
+              ) : !paidOrders || paidOrders.length === 0 ? (
+                <div className="text-center py-8">
+                  <ReceiptIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No hay órdenes pagadas en este período</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {paidOrders.map((order: any) => (
+                      <Card key={order.id} className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-semibold text-sm">Orden #{order.id}</p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <ClockIcon className="h-3 w-3" />
+                                {new Date(order.created_at).toLocaleString('es-CO')}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              Pagada
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Mesa:</span>
+                              <span className="font-medium">
+                                {order.tables ? `Mesa ${order.tables.id}` : 'N/A'}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between text-sm">
+                              <span>Mesero:</span>
+                              <span className="font-medium">
+                                {order.profiles.name || 'N/A'}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between text-sm">
+                              <span>Items:</span>
+                              <span className="font-medium">
+                                {order.order_items?.length || 0} productos
+                              </span>
+                            </div>
+
+                            <Separator className="my-2" />
+
+                            <div className="flex justify-between font-semibold">
+                              <span>Total:</span>
+                              <span className="text-green-600">
+                                {formatCurrency(order.total_amount)}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Total de órdenes:</span>
+                      <span className="text-lg font-bold">{paidOrders.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="font-semibold">Valor total:</span>
+                      <span className="text-lg font-bold text-green-600">
+                        {formatCurrency(paidOrders.reduce((sum: number, order: any) => sum + order.total_amount, 0))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
       )}
+      <Separator className="my-6" />
+
+      {/* Información del reporte */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-sm text-muted-foreground text-center">
+            Reporte generado para el período: {filters.date_from} - {filters.date_to}
+            {isLoading && " • Cargando..."}
+          </div>
+        </CardContent>
+      </Card>
+
+
 
       {isLoading && !reportData && (
         <Card>
