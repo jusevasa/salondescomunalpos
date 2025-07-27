@@ -149,6 +149,7 @@ export function TablesTable() {
               <TableHead>Número</TableHead>
               <TableHead>Capacidad</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Disponibilidad</TableHead>
               <TableHead>Creada</TableHead>
               <TableHead>Actualizada</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -182,6 +183,11 @@ export function TablesTable() {
                   <TableCell>
                     <Badge variant={table.active ? 'default' : 'secondary'}>
                       {table.active ? 'Activa' : 'Inactiva'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={table.status ? 'default' : 'secondary'}>
+                      {table.status ? 'Disponible' : 'Ocupada'}
                     </Badge>
                   </TableCell>
                   <TableCell>

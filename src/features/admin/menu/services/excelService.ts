@@ -43,8 +43,7 @@ class ExcelService {
   // Exportar menú completo a Excel
   async exportMenu(data: ExcelExportData): Promise<void> {
     const workbook = XLSX.utils.book_new()
-    
-    console.log(data.menuItems)
+
     // Hoja 1: Items del Menú (compatible con plantilla de importación)
     const menuItemsData = data.menuItems.map(item => ({
       'Nombre': item.name,

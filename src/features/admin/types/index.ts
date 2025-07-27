@@ -144,6 +144,7 @@ export interface Table {
   number: string
   capacity: number
   active: boolean
+  status: boolean
   created_at: string
   updated_at: string
 }

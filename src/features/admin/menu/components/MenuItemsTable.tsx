@@ -110,6 +110,7 @@ export default function MenuItemsTable() {
             value={searchInput}
             onChange={(e) => handleSearchInput(e.target.value)}
             className="max-w-sm"
+            autoFocus
           />
           <Select
             value={filters.active?.toString() || 'all'}
