@@ -50,6 +50,7 @@ const adaptOrderToDatabaseOrder = (order: Order): DatabaseOrder => {
       unit_price: item.unit_price,
       subtotal: item.subtotal,
       cooking_point_id: item.cooking_point_id,
+      cooking_points: item.cooking_point,
       notes: item.notes,
       created_at: item.created_at || new Date().toISOString(),
       updated_at: item.updated_at || new Date().toISOString(),

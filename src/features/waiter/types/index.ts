@@ -54,6 +54,7 @@ export interface OrderItem {
   unit_price: number
   subtotal: number
   cooking_point_id?: number
+  cooking_point?: import('@/features/shared/types/print').CookingPoint
   notes?: string
   created_at?: string
   updated_at?: string

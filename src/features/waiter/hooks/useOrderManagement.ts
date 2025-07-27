@@ -29,7 +29,12 @@ export const useOrderManagement = () => {
             table:tables(*),
             order_items(
               *,
-              menu_item:menu_items(*, menu_categories(*, print_stations(*)))
+              menu_item:menu_items(*, menu_categories(*, print_stations(*))),
+              cooking_point:cooking_points(*),
+              order_item_sides(
+                *,
+                side:sides(*)
+              )
             )
           `
           )
@@ -79,7 +84,12 @@ export const useOrderManagement = () => {
           table:tables(*),
           order_items(
             *,
-            menu_item:menu_items(*, menu_categories(*, print_stations(*)))
+            menu_item:menu_items(*, menu_categories(*, print_stations(*))),
+            cooking_point:cooking_points(*),
+            order_item_sides(
+              *,
+              side:sides(*)
+            )
           )
         `
         )
@@ -141,7 +151,12 @@ export const useOrderManagement = () => {
         .select(
           `
           *,
-          menu_item:menu_items(*, menu_categories(*, print_stations(*)))
+          menu_item:menu_items(*, menu_categories(*, print_stations(*))),
+          cooking_point:cooking_points(*),
+          order_item_sides(
+            *,
+            side:sides(*)
+          )
         `
         )
         .single();

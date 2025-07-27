@@ -235,6 +235,8 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
                 updated_at: item.menu_item.updated_at,
                 menu_categories: item.menu_item.menu_categories
               },
+              cooking_points: item.cooking_point_id && cookingPoints ? 
+                cookingPoints.find(cp => cp.id === item.cooking_point_id) : undefined,
               order_item_sides: item.selectedSides?.map(side => ({
                 id: 0,
                 order_item_id: index + 1,
