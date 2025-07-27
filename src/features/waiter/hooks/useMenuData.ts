@@ -49,7 +49,7 @@ export const useMenuData = () => {
   }
 
   // Buscar items del menú con texto optimizado para Supabase
-  const useMenuItemsSearch = (searchTerm?: string, categoryId?: number) => {
+  const useMenuItemsSearch = (searchTerm?: string, categoryId?: number | null) => {
     return useQuery({
       queryKey: ['menuItemsSearch', searchTerm, categoryId],
       queryFn: async (): Promise<MenuItem[]> => {
@@ -64,8 +64,8 @@ export const useMenuData = () => {
           `)
           .eq('active', true)
 
-        // Apply category filter if provided
-        if (categoryId) {
+        // Apply category filter if provided (null means all categories)
+        if (categoryId !== null && categoryId !== undefined) {
           query = query.eq('category_id', categoryId)
         }
 
@@ -80,7 +80,7 @@ export const useMenuData = () => {
         if (error) throw error
         return data || []
       },
-      enabled: !!searchTerm || categoryId !== undefined, // Only run if we have search term or category
+      // Always enabled - we want to show all items when no filters are applied
     })
   }
 

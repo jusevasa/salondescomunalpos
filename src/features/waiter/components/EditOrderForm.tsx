@@ -54,7 +54,7 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
   // Use optimized search hook that queries Supabase directly
   const { data: menuItems } = useMenuItemsSearch(
     searchTerm.trim() || undefined,
-    selectedCategory || undefined
+    selectedCategory
   )
 
   // Initialize form with order data
@@ -79,13 +79,6 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
       setCart(existingItems)
     }
   }, [order])
-
-  // Set default category when categories load
-  useEffect(() => {
-    if (categories && categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].id)
-    }
-  }, [categories, selectedCategory])
 
   // Use the menu items directly from the optimized search
   const filteredMenuItems = menuItems || []

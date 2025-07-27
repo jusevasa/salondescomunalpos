@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,15 +52,8 @@ export default function CreateOrderForm({ table, onSuccess, onCancel }: CreateOr
   // Use optimized search hook that queries Supabase directly
   const { data: menuItems } = useMenuItemsSearch(
     searchTerm.trim() || undefined,
-    selectedCategory || undefined
+    selectedCategory
   )
-
-  // Set default category when categories load
-  useEffect(() => {
-    if (categories && categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].id)
-    }
-  }, [categories, selectedCategory])
 
   // Use the menu items directly from the optimized search
   const filteredMenuItems = menuItems || []
