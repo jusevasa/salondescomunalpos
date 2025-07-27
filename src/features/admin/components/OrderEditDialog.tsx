@@ -26,6 +26,7 @@ import {
   Package
 } from 'lucide-react'
 import { useRemoveOrderItem, useUpdateOrderItem } from '../hooks'
+import { useOrderManagement } from '@/features/waiter/hooks/useOrderManagement'
 import { useRole } from '@/hooks/useRole'
 import type { Order, OrderItem } from '../types'
 
@@ -63,6 +64,7 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
 
   const removeOrderItem = useRemoveOrderItem()
   const updateOrderItem = useUpdateOrderItem()
+  const { completeOrder } = useOrderManagement()
   const { addToast, toasts, removeToast } = useToast()
   const { isAdmin } = useRole()
 
@@ -214,6 +216,49 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
         variant: 'error'
       })
     }
+  }
+
+  const handleCancelOrder = async () => {
+    if (!order) return
+
+    const tableNumber = order.tables?.number || order.table_number || 'N/A'
+
+    setConfirmDialog({
+      open: true,
+      title: 'Cancelar Orden Completa',
+      description: `¿Está seguro de cancelar completamente la orden de la Mesa ${tableNumber}? Esta acción eliminará todos los items, cancelará la orden y liberará la mesa. Esta acción no se puede deshacer.`,
+      confirmText: 'Sí, Cancelar Orden',
+      cancelText: 'No, Mantener Orden',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await completeOrder.mutateAsync({
+            orderId: Number(order.id),
+            status: 'cancelled'
+          })
+
+          // Show success message
+          addToast({
+            title: 'Orden cancelada',
+            description: `La orden de la Mesa ${tableNumber} ha sido cancelada y la mesa liberada`,
+            variant: 'success'
+          })
+
+          // Close dialog
+          onOpenChange(false)
+          setConfirmDialog(null)
+        } catch (error) {
+          console.error('Error cancelling order:', error)
+          addToast({
+            title: 'Error al cancelar',
+            description: 'No se pudo cancelar la orden. Intente nuevamente.',
+            variant: 'error'
+          })
+          setConfirmDialog(null)
+        }
+      },
+      loading: completeOrder.isPending
+    })
   }
 
   const calculateTotals = () => {
@@ -451,7 +496,18 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
               className="w-full sm:w-auto"
             >
               <X className="h-4 w-4 mr-2" />
-              Cancelar
+              Cerrar
+            </Button>
+
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleCancelOrder}
+              disabled={completeOrder.isPending}
+              className="w-full sm:w-auto"
+            >
+              <X className="h-4 w-4 mr-2" />
+              {completeOrder.isPending ? 'Cancelando...' : 'Cancelar Orden'}
             </Button>
 
             {hasChanges && hasItems && (
