@@ -264,6 +264,15 @@ export const ordersService = {
 
       if (orderItem.quantity <= quantityToRemove) {
         // Remove the item completely
+        // First, delete all associated order_item_sides to avoid foreign key constraint violation
+        const { error: deleteSidesError } = await supabase
+          .from('order_item_sides')
+          .delete()
+          .eq('order_item_id', orderItemId)
+
+        if (deleteSidesError) throw deleteSidesError
+
+        // Then delete the order item
         const { error: deleteError } = await supabase
           .from('order_items')
           .delete()
