@@ -119,6 +119,18 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
   }
 
   const handleRemoveItem = async (item: OrderItem) => {
+    const currentItemCount = Object.keys(editingItems).length
+    
+    // Validar que no se eliminen todos los items (mínimo 2 items)
+    if (currentItemCount <= 1) {
+      addToast({
+        title: 'No se puede eliminar',
+        description: 'Una orden debe tener al menos 1 item. No se puede eliminar este item.',
+        variant: 'warning'
+      })
+      return
+    }
+
     setConfirmDialog({
       open: true,
       title: 'Confirmar eliminación',
@@ -286,6 +298,8 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
 
                   const itemTotal = originalItem.price * editItem.quantity
                   const isChanged = editItem.quantity !== editItem.originalQuantity
+                  const currentItemCount = Object.keys(editingItems).length
+                  const canRemoveItem = currentItemCount > 1
 
                   return (
                     <div
@@ -357,8 +371,9 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
                             variant="outline"
                             size="sm"
                             onClick={() => handleRemoveItem(originalItem)}
-                            disabled={removeOrderItem.isPending}
-                            className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                            disabled={removeOrderItem.isPending || !canRemoveItem}
+                            className={`h-8 w-8 p-0 ${canRemoveItem ? 'text-destructive hover:text-destructive' : 'text-muted-foreground'}`}
+                            title={!canRemoveItem ? 'No se puede eliminar. La orden debe tener al menos 2 items.' : 'Eliminar item'}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
