@@ -369,7 +369,6 @@ export const menuItemsService = {
           const itemSidesData = side_ids.map(sideId => ({
             menu_item_id: id,
             side_id: sideId,
-            max_quantity: 1
           }))
 
           const { error: insertError } = await supabase
