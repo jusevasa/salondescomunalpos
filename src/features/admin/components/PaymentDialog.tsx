@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { AlertDialog } from '@/components/ui/alert-dialog'
 import {
   Form,
   FormControl,
@@ -44,6 +45,8 @@ interface PaymentDialogProps {
 export default function PaymentDialog({ order, open, onOpenChange }: PaymentDialogProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
   const [tipMode, setTipMode] = useState<'percentage' | 'amount'>('percentage')
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [pendingPaymentData, setPendingPaymentData] = useState<PaymentFormData | CashPaymentFormData | null>(null)
   
   const { data: paymentMethods = [], isLoading: loadingMethods } = usePaymentMethods()
   const processPayment = useProcessPayment()
@@ -91,31 +94,47 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
       form.reset()
       setSelectedPaymentMethod('')
       setTipMode('percentage')
+      setShowConfirmDialog(false)
+      setPendingPaymentData(null)
     } else if (!open) {
       // Limpiar datos de factura cuando se cierra el dialog sin procesar pago
       clearInvoiceData()
+      setShowConfirmDialog(false)
+      setPendingPaymentData(null)
     }
   }, [open, order, form, clearInvoiceData])
 
   const onSubmit = async (data: PaymentFormData | CashPaymentFormData) => {
     if (!order) return
 
+    // Guardar los datos del pago y mostrar modal de confirmación
+    setPendingPaymentData(data)
+    setShowConfirmDialog(true)
+  }
+
+  const handleConfirmPayment = async () => {
+    if (!order || !pendingPaymentData) return
+
     try {
-      const finalTipAmount = tipMode === 'percentage' ? calculatedTipAmount : data.tipAmount
+      const finalTipAmount = tipMode === 'percentage' ? calculatedTipAmount : pendingPaymentData.tipAmount
       
       await processPayment.mutateAsync({
         orderId: parseInt(order.id),
         paymentMethodId: parseInt(selectedPaymentMethod),
         tipAmount: finalTipAmount,
-        tipPercentage: tipMode === 'percentage' ? data.tipPercentage : undefined,
-        receivedAmount: 'receivedAmount' in data ? data.receivedAmount : undefined,
-        notes: data.notes
+        tipPercentage: tipMode === 'percentage' ? pendingPaymentData.tipPercentage : undefined,
+        receivedAmount: 'receivedAmount' in pendingPaymentData ? pendingPaymentData.receivedAmount : undefined,
+        notes: pendingPaymentData.notes
       })
       freeTable(order.table_id)
       clearInvoiceData()
+      setShowConfirmDialog(false)
+      setPendingPaymentData(null)
       onOpenChange(false)
     } catch (error) {
       console.error('Payment failed:', error)
+      setShowConfirmDialog(false)
+      setPendingPaymentData(null)
     }
   }
 
@@ -469,6 +488,19 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
           </form>
         </Form>
       </DialogContent>
+
+      {/* Modal de Confirmación de Pago */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Confirmar Pago"
+        description={`¿Está seguro que desea procesar el pago de $${totalToPay.toLocaleString()} para la Mesa ${order?.table_number}?`}
+        variant="warning"
+        confirmText={`Confirmar Pago $${totalToPay.toLocaleString()}`}
+        cancelText="Cancelar"
+        onConfirm={handleConfirmPayment}
+        loading={processPayment.isPending}
+      />
     </Dialog>
   )
 }
