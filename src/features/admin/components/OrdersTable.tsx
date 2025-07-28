@@ -121,6 +121,16 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
       cell: ({ row }) => {
         const order = row.original
         const isPaid = order.payment_status === 'paid'
+        const isCancelled = order.status === 'cancelled'
+        
+        // No mostrar acciones para órdenes canceladas
+        if (isCancelled) {
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Sin acciones</span>
+            </div>
+          )
+        }
         
         return (
           <div className="flex items-center gap-2">
@@ -180,6 +190,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
       <div className="lg:hidden space-y-4">
         {orders.map((order) => {
           const isPaid = order.payment_status === 'paid'
+          const isCancelled = order.status === 'cancelled'
           
           return (
             <Card key={order.id} className="cursor-pointer hover:shadow-md transition-shadow">
@@ -220,26 +231,32 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {!isPaid && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePayOrder(order)}
-                      >
-                        <CreditCard className="h-4 w-4 mr-1" />
-                        Pagar
-                      </Button>
-                    )}
-                    
-                    {isAdmin() && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditOrder(order)}
-                      >
-                        <Edit3 className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
+                    {isCancelled ? (
+                      <span className="text-xs text-muted-foreground">Sin acciones</span>
+                    ) : (
+                      <>
+                        {!isPaid && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePayOrder(order)}
+                          >
+                            <CreditCard className="h-4 w-4 mr-1" />
+                            Pagar
+                          </Button>
+                        )}
+                        
+                        {isAdmin() && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditOrder(order)}
+                          >
+                            <Edit3 className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -317,4 +334,4 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
       />
     </>
   )
-} 
+}

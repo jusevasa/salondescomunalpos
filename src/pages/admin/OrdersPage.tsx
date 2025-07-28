@@ -6,16 +6,43 @@ import { OrdersTable, useOrders, useOrdersSubscription } from '@/features/admin'
 import { formatCurrency } from '@/lib/utils'
 import type { OrderFilters } from '@/features/admin'
 
+type OrderViewType = 'active' | 'paid' | 'cancelled'
+
 export default function AdminOrdersPage() {
   const [filters] = useState<OrderFilters>({})
+  const [activeTab, setActiveTab] = useState<OrderViewType>('active')
   const { data: ordersData, isLoading, error } = useOrders(filters)
 
   useOrdersSubscription()
 
-  const orders = ordersData?.orders.filter(order => order.payment_status != 'paid') || []
-  const pendingOrders = orders.filter(order => order.payment_status === 'pending')
-  const paidOrders = ordersData?.orders.filter(order => order.status === 'paid') || []
+  // Filtrar órdenes por estado
+  const allOrders = ordersData?.orders || []
+  const activeOrders = allOrders.filter(order => 
+    order.status !== 'paid' && order.status !== 'cancelled'
+  )
+  const paidOrders = allOrders.filter(order => order.status === 'paid')
+  const cancelledOrders = allOrders.filter(order => order.status === 'cancelled')
+  
+  // Estadísticas
+  const pendingOrders = activeOrders.filter(order => order.payment_status === 'pending')
   const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total_amount, 0)
+  const cancelledRevenue = cancelledOrders.reduce((sum, order) => sum + order.total_amount, 0)
+
+  // Obtener las órdenes a mostrar según la pestaña activa
+  const getCurrentOrders = () => {
+    switch (activeTab) {
+      case 'active':
+        return activeOrders
+      case 'paid':
+        return paidOrders
+      case 'cancelled':
+        return cancelledOrders
+      default:
+        return activeOrders
+    }
+  }
+
+  const currentOrders = getCurrentOrders()
 
   if (error) {
     return (
@@ -49,12 +76,12 @@ export default function AdminOrdersPage() {
             Órdenes del Día
           </h1>
           <p className="text-muted-foreground">
-            Gestiona las órdenes y pagos pendientes
+            Gestiona las órdenes activas, pagadas y canceladas
           </p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -62,7 +89,7 @@ export default function AdminOrdersPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.length}</div>
+            <div className="text-2xl font-bold">{allOrders.length}</div>
             <p className="text-xs text-muted-foreground">
               órdenes registradas hoy
             </p>
@@ -72,15 +99,15 @@ export default function AdminOrdersPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Pendientes de Pago
+              Activas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {pendingOrders.length}
+            <div className="text-2xl font-bold text-blue-600">
+              {activeOrders.length}
             </div>
             <p className="text-xs text-muted-foreground">
-              requieren atención
+              {pendingOrders.length} pendientes de pago
             </p>
           </CardContent>
         </Card>
@@ -104,6 +131,22 @@ export default function AdminOrdersPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
+              Canceladas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {cancelledOrders.length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {formatCurrency(cancelledRevenue)} perdidos
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
               Ingresos del Día
             </CardTitle>
           </CardHeader>
@@ -120,16 +163,57 @@ export default function AdminOrdersPage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Órdenes Activas</h2>
+          <div className="flex items-center space-x-4">
+            <h2 className="text-lg font-semibold">Órdenes</h2>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={activeTab === 'active' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('active')}
+                className="relative"
+              >
+                Activas
+                {activeOrders.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {activeOrders.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeTab === 'paid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('paid')}
+              >
+                Pagadas
+                {paidOrders.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {paidOrders.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeTab === 'cancelled' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveTab('cancelled')}
+              >
+                Canceladas
+                {cancelledOrders.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {cancelledOrders.length}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center space-x-2">
-            <Badge variant="outline">{orders.length} órdenes</Badge>
+            <Badge variant="outline">{currentOrders.length} órdenes</Badge>
             {isLoading && (
               <Badge variant="secondary">Actualizando...</Badge>
             )}
           </div>
         </div>
 
-        <OrdersTable orders={orders} isLoading={isLoading} />
+        <OrdersTable orders={currentOrders} isLoading={isLoading} />
       </div>
     </div>
   )
