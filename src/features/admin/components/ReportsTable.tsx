@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DateRangePicker } from '@/components/ui/date-picker'
-import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon, ReceiptIcon, ClockIcon } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon, ReceiptIcon, ClockIcon, EyeIcon } from 'lucide-react'
 import { useSalesReport, usePaidOrders } from '../hooks'
 import { formatCurrency } from '@/lib/utils'
 import { getTodayString, formatDateForInput, parseDate, formatDateDisplay } from '@/lib/utils/date'
@@ -24,6 +25,95 @@ export default function ReportsTable() {
 
   const { data: reportData, isLoading, error } = useSalesReport(filters)
   const { data: paidOrders, isLoading: isLoadingOrders, error: ordersError } = usePaidOrders(filters)
+
+  // Componente para mostrar detalles de la orden
+  const OrderDetailsModal = ({ order }: { order: any }) => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+          <EyeIcon className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Detalle de Orden #{order.id}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {/* Información general */}
+          <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Fecha</p>
+              <p className="text-sm">{new Date(order.created_at).toLocaleString('es-CO')}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Mesa</p>
+              <p className="text-sm">{order.tables ? `Mesa ${order.tables.id}` : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Mesero</p>
+              <p className="text-sm">{order.profiles?.name || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Estado</p>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                Pagada
+              </Badge>
+            </div>
+          </div>
+
+          {/* Items de la orden */}
+          <div>
+            <h4 className="font-medium mb-3">Items de la orden</h4>
+            <div className="space-y-2">
+              {order.order_items && order.order_items.length > 0 ? (
+                order.order_items.map((item: any, index: number) => (
+                  <div key={index} className="flex justify-between items-center p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium">{item.menu_items?.name || 'Item desconocido'}</p>
+                      {item.menu_items?.author && (
+                        <p className="text-xs text-gray-500">Autor: {item.menu_items.author}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Cantidad: {item.quantity}</p>
+                      <p className="text-sm text-gray-600">
+                        Precio: {formatCurrency(item.quantity * item.menu_items?.price)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No hay items en esta orden</p>
+              )}
+            </div>
+          </div>
+
+          {/* Resumen de totales */}
+          <div className="border-t pt-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>{formatCurrency(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>INC:</span>
+                <span>{formatCurrency(order.tax_amount)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Propina:</span>
+                <span>{formatCurrency(order.tip_amount)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-semibold text-lg">
+                <span>Total:</span>
+                <span className="text-green-600">{formatCurrency(order.grand_total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 
   const handleDateFromChange = (date: Date | undefined) => {
     setDateFrom(date)
@@ -283,9 +373,12 @@ export default function ReportsTable() {
                                 {new Date(order.created_at).toLocaleString('es-CO')}
                               </p>
                             </div>
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              Pagada
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                Pagada
+                              </Badge>
+                              <OrderDetailsModal order={order} />
+                            </div>
                           </div>
 
                           <div className="space-y-2">
