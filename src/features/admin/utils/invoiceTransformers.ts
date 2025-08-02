@@ -27,6 +27,45 @@ const RESTAURANT_INFO: RestaurantInfo = {
 }
 
 /**
+ * Agrupa items duplicados por menu_item_id y unit_price
+ * 
+ * Esta función toma una lista de items de factura y agrupa aquellos que tienen
+ * el mismo menu_item_id y unit_price, sumando sus cantidades y recalculando
+ * los totales correspondientes.
+ * 
+ * Ejemplo: Si hay 2 entradas de "Coca-Cola" con cantidad 1 cada una,
+ * se agrupan en una sola entrada con cantidad 2.
+ */
+const groupInvoiceItems = (items: InvoiceMenuItem[]): InvoiceMenuItem[] => {
+  const groupedMap = new Map<string, InvoiceMenuItem>()
+
+  items.forEach(item => {
+    // Crear clave única basada en menu_item_id y unit_price
+    const key = `${item.menu_item_id}-${item.unit_price}`
+    
+    if (groupedMap.has(key)) {
+      // Si ya existe, sumar cantidades y recalcular totales
+      const existingItem = groupedMap.get(key)!
+      const newQuantity = existingItem.quantity + item.quantity
+      const newSubtotal = existingItem.unit_price * newQuantity
+      const newTaxAmount = newSubtotal * existingItem.tax_rate
+
+      groupedMap.set(key, {
+        ...existingItem,
+        quantity: newQuantity,
+        subtotal: newSubtotal,
+        tax_amount: newTaxAmount
+      })
+    } else {
+      // Si no existe, agregar el item tal como está
+      groupedMap.set(key, { ...item })
+    }
+  })
+
+  return Array.from(groupedMap.values())
+}
+
+/**
  * Transforma los datos de una orden a formato de factura para impresión
  */
 export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): PrintInvoiceRequest => {
@@ -96,8 +135,20 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     })
   }
 
+  // Agrupar items duplicados
+  const groupedInvoiceItems = groupInvoiceItems(invoiceItems)
+  
+  // Log de agrupación para debug
+  if (invoiceItems.length !== groupedInvoiceItems.length) {
+    console.log('📦 Items agrupados:', {
+      items_originales: invoiceItems.length,
+      items_agrupados: groupedInvoiceItems.length,
+      items_reducidos: invoiceItems.length - groupedInvoiceItems.length
+    })
+  }
+
   // Validar que tengamos al menos un item
-  if (invoiceItems.length === 0) {
+  if (groupedInvoiceItems.length === 0) {
     throw new Error('La orden debe tener al menos un item para generar la factura')
   }
 
@@ -146,7 +197,7 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     diners_count: dinersCount,
     waiter_name: waiterName,
     created_at: order.created_at,
-    items: invoiceItems,
+    items: groupedInvoiceItems,
     subtotal: subtotal,
     tax_amount: taxAmount,
     total_amount: totalAmount,
@@ -162,7 +213,8 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     table_number: invoiceRequest.table_number,
     diners_count: invoiceRequest.diners_count,
     waiter_name: invoiceRequest.waiter_name,
-    items_count: invoiceRequest.items.length,
+    original_items_count: invoiceItems.length,
+    grouped_items_count: invoiceRequest.items.length,
     items_detail: invoiceRequest.items.map(item => ({
       name: item.menu_item_name,
       quantity: item.quantity,
