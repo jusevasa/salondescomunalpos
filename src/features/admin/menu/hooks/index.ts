@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { printService } from '@/features/shared/services/printService'
 import {
   menuCategoriesService,
   menuItemsService,
@@ -374,6 +375,15 @@ export const useDeletePrintStation = () => {
     },
     onError: (error) => {
       console.error('Error deleting print station:', error)
+    },
+  })
+}
+
+export const useTestPrinterConnection = () => {
+  return useMutation({
+    mutationFn: (printerIp: string) => printService.testPrinterConnection(printerIp),
+    onError: (error) => {
+      console.error('Error testing printer connection:', error)
     },
   })
 }

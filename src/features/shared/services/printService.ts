@@ -174,6 +174,44 @@ class PrintService {
   }
 
   /**
+   * Prueba la conexión con una impresora específica
+   */
+  async testPrinterConnection(printerIp: string): Promise<{ success: boolean; message: string }> {
+    if (!this.baseUrl) {
+      throw new PrintServiceError(
+        'Print API URL not configured. Please set VITE_PRINT_API_URL environment variable.',
+        'MISSING_CONFIG'
+      )
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/printer/test/${printerIp}`, {
+        method: 'GET',
+        timeout: 10000,
+      } as RequestInit)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        return {
+          success: false,
+          message: errorData.message || `Error ${response.status}: ${response.statusText}`
+        }
+      }
+
+      const data = await response.json()
+      return {
+        success: true,
+        message: data.message || 'Conexión exitosa'
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Error de conexión'
+      }
+    }
+  }
+
+  /**
    * Obtiene la configuración actual del servicio
    */
   getConfig() {

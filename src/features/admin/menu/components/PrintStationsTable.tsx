@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus } from 'lucide-react'
-import { usePrintStations, useDeletePrintStation, useUpdatePrintStation } from '../hooks'
+import { useToast } from '@/components/ui/toast'
+import { Plus, Wifi, WifiOff, Loader2 } from 'lucide-react'
+import { usePrintStations, useDeletePrintStation, useUpdatePrintStation, useTestPrinterConnection } from '../hooks'
 import type { PrintStationFilters, PrintStation } from '../types'
 import PrintStationFormDialog from './PrintStationFormDialog'
 
@@ -18,10 +19,13 @@ export default function PrintStationsTable() {
   })
   const [showFormDialog, setShowFormDialog] = useState(false)
   const [editingPrintStation, setEditingPrintStation] = useState<PrintStation | null>(null)
+  const [testingPrinter, setTestingPrinter] = useState<number | null>(null)
 
   const { data: printStationsData, isLoading } = usePrintStations(filters, page, 10)
   const deletePrintStationMutation = useDeletePrintStation()
   const updatePrintStationMutation = useUpdatePrintStation()
+  const testPrinterMutation = useTestPrinterConnection()
+  const { addToast } = useToast()
 
   const handleSearch = (search: string) => {
     setFilters(prev => ({ ...prev, search }))
@@ -59,6 +63,43 @@ export default function PrintStationsTable() {
   const handleCloseForm = () => {
     setShowFormDialog(false)
     setEditingPrintStation(null)
+  }
+
+  const handleTestConnection = async (station: PrintStation) => {
+    if (!station.printer_ip) {
+      addToast({
+        title: 'IP no configurada',
+        description: 'Esta estación no tiene una IP de impresora configurada',
+        variant: 'warning'
+      })
+      return
+    }
+
+    setTestingPrinter(station.id)
+    try {
+      const result = await testPrinterMutation.mutateAsync(station.printer_ip)
+      if (result.success) {
+        addToast({
+          title: 'Conexión exitosa',
+          description: `Impresora ${station.printer_ip} conectada correctamente`,
+          variant: 'success'
+        })
+      } else {
+        addToast({
+          title: 'Error de conexión',
+          description: result.message,
+          variant: 'error'
+        })
+      }
+    } catch (error) {
+      addToast({
+        title: 'Error de conexión',
+        description: 'No se pudo conectar con la impresora',
+        variant: 'error'
+      })
+    } finally {
+      setTestingPrinter(null)
+    }
   }
 
   if (isLoading) {
@@ -115,6 +156,7 @@ export default function PrintStationsTable() {
                 <TableHead>IP de Impresora</TableHead>
                 <TableHead>Orden</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Conexión</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -129,6 +171,24 @@ export default function PrintStationsTable() {
                     <Badge variant={station.active ? 'default' : 'secondary'}>
                       {station.active ? 'Activo' : 'Inactivo'}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestConnection(station)}
+                      disabled={!station.printer_ip || testingPrinter === station.id}
+                      className="flex items-center gap-1"
+                    >
+                      {testingPrinter === station.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : station.printer_ip ? (
+                        <Wifi className="h-3 w-3" />
+                      ) : (
+                        <WifiOff className="h-3 w-3" />
+                      )}
+                      {testingPrinter === station.id ? 'Probando...' : 'Probar'}
+                    </Button>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
