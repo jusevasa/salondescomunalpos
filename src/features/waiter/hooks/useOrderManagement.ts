@@ -193,13 +193,24 @@ export const useOrderManagement = () => {
   const updateOrderTotals = async (orderId: number) => {
     const { data: orderItems, error } = await supabase
       .from('order_items')
-      .select('subtotal')
+      .select(`
+        subtotal,
+        quantity,
+        menu_item:menu_items(tax)
+      `)
       .eq('order_id', orderId);
 
     if (error) throw error;
 
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const taxAmount = subtotal * 0.08
+    
+    // Calcular el tax basándose en el valor real de cada item del menú
+    const taxAmount = orderItems.reduce((sum, item) => {
+      const itemTaxRate = (item.menu_item as any)?.tax || 0;
+      const itemTaxAmount = item.subtotal * (itemTaxRate / 100);
+      return sum + itemTaxAmount;
+    }, 0);
+    
     const totalAmount = subtotal + taxAmount;
 
     await supabase

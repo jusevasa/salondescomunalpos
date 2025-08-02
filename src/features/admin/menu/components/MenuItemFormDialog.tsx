@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Calculator } from 'lucide-react'
 import { 
   useCreateMenuItem, 
   useUpdateMenuItem, 
@@ -60,6 +60,8 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
 
   const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = form
   const watchSideIds = watch('side_ids')
+  const watchPrice = watch('price')
+  const watchTax = watch('tax')
 
   // Reset form when dialog opens/closes or menu item changes
   useEffect(() => {
@@ -97,6 +99,16 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
       }
     }
   }, [open, menuItem, categoriesData, reset])
+
+  // Calcular automáticamente el precio base cuando cambien el precio de venta o el impuesto
+  useEffect(() => {
+    if (watchPrice > 0 && watchTax >= 0 && !watch('base_price')) {
+      const taxDecimal = watchTax / 100
+      const basePrice = watchPrice / (1 + taxDecimal)
+      const roundedBasePrice = Math.round(basePrice * 100) / 100
+      setValue('base_price', roundedBasePrice)
+    }
+  }, [watchPrice, watchTax, setValue, watch])
 
   const onSubmit = async (data: FieldValues) => {
     try {
@@ -145,6 +157,22 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
     const currentSides = watchSideIds || []
     const newSides = currentSides.filter(id => id !== sideId)
     setValue('side_ids', newSides.length > 0 ? newSides : undefined)
+  }
+
+  // Función para calcular el precio base automáticamente
+  const calculateBasePrice = () => {
+    const salePrice = watch('price')
+    const taxPercentage = watch('tax')
+    
+    if (salePrice > 0 && taxPercentage >= 0) {
+      // Convertir el porcentaje a decimal (ej: 8% = 0.08)
+      const taxDecimal = taxPercentage / 100
+      // Calcular precio base: precio_venta / (1 + impuesto)
+      const basePrice = salePrice / (1 + taxDecimal)
+      // Redondear a 2 decimales
+      const roundedBasePrice = Math.round(basePrice * 100) / 100
+      setValue('base_price', roundedBasePrice)
+    }
   }
 
   const isLoading = createMenuItemMutation.isPending || updateMenuItemMutation.isPending || deleteMenuItemMutation.isPending
@@ -266,14 +294,37 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="base_price">Precio Base (Opcional)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="base_price">Precio Base (Opcional)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={calculateBasePrice}
+                  className="h-6 px-2 text-xs"
+                  disabled={!watch('price') || watch('price') <= 0}
+                  title="Calcular precio base automáticamente usando: Precio de Venta ÷ (1 + Impuesto%)"
+                >
+                  <Calculator className="h-3 w-3 mr-1" />
+                  Calcular
+                </Button>
+              </div>
               <Input
                 id="base_price"
                 type="number"
                 step="0.01"
                 min="0"
                 {...register('base_price', { valueAsNumber: true })}
+                placeholder="Se calculará automáticamente"
               />
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>Fórmula: Precio de Venta ÷ (1 + Impuesto%)</p>
+                {watchPrice > 0 && watchTax >= 0 && (
+                  <p className="text-blue-600 font-medium">
+                    Ejemplo: ${watchPrice} ÷ (1 + {watchTax}%) = ${((watchPrice / (1 + watchTax / 100)) || 0).toFixed(2)}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -296,7 +347,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fee">Comisión</Label>
+              <Label htmlFor="fee">Comisión (%)</Label>
               <Input
                 id="fee"
                 type="number"

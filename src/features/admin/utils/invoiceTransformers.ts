@@ -1,9 +1,9 @@
 import type { Order, PaymentMethod } from '../types'
-import type { 
-  PrintInvoiceRequest, 
-  InvoiceMenuItem, 
-  PaymentInfo, 
-  RestaurantInfo 
+import type {
+  PrintInvoiceRequest,
+  InvoiceMenuItem,
+  PaymentInfo,
+  RestaurantInfo
 } from '@/features/shared/types/print'
 
 interface TransformOrderToInvoiceParams {
@@ -55,9 +55,9 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
         // IMPORTANTE: Para facturas usamos el price (precio final) no el unit_price (base_price)
         const unitPrice = dbItem.menu_items.price || 0
         const subtotal = unitPrice * quantity // Recalcular subtotal con el precio correcto
-        const taxRate = dbItem.menu_items.tax || 0.08 // Usar el tax del menu_item o 19% por defecto
+        const taxRate = ((dbItem.menu_items.tax / 100)) || 0.08 // Usar el tax del menu_item o 19% por defecto
         const taxAmount = subtotal * taxRate
-        
+
         invoiceItems.push({
           menu_item_id: dbItem.menu_items.id,
           menu_item_name: dbItem.menu_items.name,
@@ -71,7 +71,7 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
         })
       }
     })
-  } 
+  }
   // Si tenemos items (formato simplificado)
   else if (order.items && order.items.length > 0) {
     order.items.forEach(item => {
@@ -81,7 +81,7 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
       const subtotal = item.subtotal || 0
       const taxRate = 0.19 // 19% IVA por defecto para items simplificados
       const taxAmount = subtotal * taxRate
-      
+
       invoiceItems.push({
         menu_item_id: item.id,
         menu_item_name: item.name,
@@ -103,7 +103,7 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
 
   // Determinar información de pago
   const isCashPayment = paymentMethod.code === 'CASH'
-  
+
   // Mapear códigos de métodos de pago a los valores esperados por la validación
   const getPaymentMethodCode = (code: string): 'cash' | 'card' | 'mixed' => {
     switch (code) {
@@ -117,7 +117,7 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
         return code === 'CASH' ? 'cash' : 'card'
     }
   }
-  
+
   const paymentInfo: PaymentInfo = {
     method: getPaymentMethodCode(paymentMethod.code),
     payment_method_name: paymentMethod.name,
@@ -201,9 +201,9 @@ export const validateOrderForInvoice = (order: Order): { isValid: boolean; error
   }
 
   // Verificar que tenga items
-  const hasItems = (order.order_items && order.order_items.length > 0) || 
-                   (order.items && order.items.length > 0)
-  
+  const hasItems = (order.order_items && order.order_items.length > 0) ||
+    (order.items && order.items.length > 0)
+
   if (!hasItems) {
     errors.push('La orden debe tener al menos un item')
   }
