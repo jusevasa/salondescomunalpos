@@ -95,62 +95,62 @@ SELECT * FROM (
 
 -- Configurar relaciones de acompañamientos para platos que los permiten
 -- Nachos Especiales
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Nachos Especiales' AND s.name IN ('Papas fritas', 'Ensalada');
 
 -- Bandeja Paisa
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Bandeja Paisa' AND s.name IN ('Papas fritas', 'Arroz', 'Yuca', 'Plátano');
 
 -- Pollo a la Plancha
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Pollo a la Plancha' AND s.name IN ('Papas fritas', 'Ensalada', 'Arroz', 'Yuca');
 
 -- Carne Asada
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Carne Asada' AND s.name IN ('Papas fritas', 'Ensalada', 'Arroz', 'Yuca', 'Plátano');
 
 -- Cazuela de Mariscos
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Cazuela de Mariscos' AND s.name IN ('Arroz', 'Plátano');
 
 -- Lomo de Cerdo
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Lomo de Cerdo' AND s.name IN ('Papas fritas', 'Ensalada', 'Arroz', 'Yuca');
 
 -- Trucha al Ajillo
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Trucha al Ajillo' AND s.name IN ('Papas fritas', 'Ensalada', 'Arroz');
 
 -- Huevos Pericos
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Huevos Pericos' AND s.name IN ('Arroz', 'Plátano');
 
 -- Calentado Paisa
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Calentado Paisa' AND s.name IN ('Papas fritas', 'Ensalada', 'Plátano');
 
 -- Changua
-INSERT INTO item_sides (menu_item_id, side_id, max_quantity)
-SELECT mi.id, s.id, 1
+INSERT INTO item_sides (menu_item_id, side_id)
+SELECT mi.id, s.id
 FROM menu_items mi, sides s
 WHERE mi.name = 'Changua' AND s.name IN ('Arroz', 'Plátano');
 
@@ -174,4 +174,4 @@ INSERT INTO tables (number, capacity, active) VALUES
 -- - Configuración de acompañamientos para platos principales
 -- - 10 mesas de diferentes capacidades
 -- - Productos con y sin puntos de cocción
--- - Productos con y sin acompañamientos disponibles 
+-- - Productos con y sin acompañamientos disponibles

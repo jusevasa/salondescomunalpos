@@ -14,6 +14,7 @@ import { usePrintServices } from '@/features/shared/hooks/usePrintServices'
 import { transformOrderToPrintRequest } from '@/features/shared/utils/printTransformers'
 import { formatCurrency } from '@/lib/utils'
 import OrderConfirmationModal from './OrderConfirmationModal'
+import SideSelector from './SideSelector'
 import type { MenuItem, AddOrderItemData, OrderItem, Side } from '../types'
 import type { DatabaseOrder } from '@/features/shared/types/database'
 
@@ -42,14 +43,13 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
 
 
   const { addOrderItem, updateOrder } = useOrderManagement()
-  const { useMenuCategories, useMenuItemsSearch, useCookingPoints, useSides } = useMenuData()
+  const { useMenuCategories, useMenuItemsSearch, useCookingPoints } = useMenuData()
   const { data: order, isLoading: orderLoading } = useOrderById(orderId)
   const { printOrder } = usePrintServices()
   const { addToast } = useToast()
 
   const { data: categories } = useMenuCategories()
   const { data: cookingPoints } = useCookingPoints()
-  const { data: sides } = useSides()
   
   // Use optimized search hook that queries Supabase directly
   const { data: menuItems } = useMenuItemsSearch(
@@ -111,27 +111,28 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
     }
   }
 
-  const toggleSideForItem = (tempId: string, sideId: number) => {
+  const toggleSideForItem = (tempId: string, sideId: number, side: Side) => {
     setCart(prev => prev.map(item => {
       if (item.tempId === tempId) {
-        const currentSideIds = item.selectedSides?.map(side => side.id) || []
-        const isSelected = currentSideIds.includes(sideId)
+        const currentSelectedSides = item.selectedSides || []
+        const isSelected = currentSelectedSides.some(s => s.id === sideId)
         
         if (isSelected) {
           // Remove side
+          const newSelectedSides = currentSelectedSides.filter(s => s.id !== sideId)
           return {
             ...item,
-            selectedSides: item.selectedSides?.filter(side => side.id !== sideId) || []
+            selectedSides: newSelectedSides,
+            sides: newSelectedSides.map(s => s.id)
           }
         } else {
           // Add side if under limit
-          if (currentSideIds.length < (item.menu_item.max_sides_count || 0)) {
-            const sideToAdd = sides?.find(side => side.id === sideId)
-            if (sideToAdd) {
-              return {
-                ...item,
-                selectedSides: [...(item.selectedSides || []), sideToAdd]
-              }
+          if (currentSelectedSides.length < (item.menu_item.max_sides_count || 0)) {
+            const newSelectedSides = [...currentSelectedSides, side]
+            return {
+              ...item,
+              selectedSides: newSelectedSides,
+              sides: newSelectedSides.map(s => s.id)
             }
           }
         }
@@ -580,31 +581,14 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
                       </div>
                     )}
 
-                    {item.menu_item.has_sides && sides && sides.length > 0 && (
-                      <div className="space-y-1">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Utensils className="h-3 w-3" />
-                          Acompañamientos ({(item.selectedSides || []).length}/{item.menu_item.max_sides_count})
-                        </Label>
-                        <div className="flex gap-1 flex-wrap">
-                          {sides.map((side) => {
-                            const isSelected = (item.selectedSides || []).some(s => s.id === side.id)
-                            const canSelect = (item.selectedSides || []).length < item.menu_item.max_sides_count
-                            return (
-                              <Button
-                                key={side.id}
-                                variant={isSelected ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => toggleSideForItem(item.tempId, side.id)}
-                                className="text-xs h-6"
-                                disabled={!isSelected && !canSelect || item.isExisting}
-                              >
-                                {side.name}
-                              </Button>
-                            )
-                          })}
-                        </div>
-                      </div>
+                    {item.menu_item.has_sides && (
+                      <SideSelector
+                        menuItemId={item.menu_item.id}
+                        maxSidesCount={item.menu_item.max_sides_count}
+                        selectedSides={item.selectedSides || []}
+                        onSideToggle={(sideId, side) => toggleSideForItem(item.tempId, sideId, side)}
+                        disabled={item.isExisting}
+                      />
                     )}
 
                     <div className="space-y-1">

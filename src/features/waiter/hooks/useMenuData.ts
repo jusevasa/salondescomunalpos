@@ -101,6 +101,38 @@ export const useMenuData = () => {
     })
   }
 
+  // Obtener sides específicos para un item del menú
+  const useItemSides = (menuItemId?: number) => {
+    return useQuery({
+      queryKey: ['itemSides', menuItemId],
+      queryFn: async (): Promise<Side[]> => {
+        if (!menuItemId) return []
+
+        const { data, error } = await supabase
+          .from('item_sides')
+          .select(`
+            sides (
+              id,
+              name,
+              active,
+              display_order,
+              created_at,
+              updated_at
+            )
+          `)
+          .eq('menu_item_id', menuItemId)
+          .order('sides(display_order)')
+
+        if (error) throw error
+        
+        // Extract sides from the nested structure and filter active ones
+        const sides = data?.map((item: any) => item.sides).filter((side: any) => side && side.active) || []
+        return sides
+      },
+      enabled: !!menuItemId, // Only run query if menuItemId is provided
+    })
+  }
+
   // Obtener puntos de cocción
   const useCookingPoints = () => {
     return useQuery({
@@ -123,6 +155,7 @@ export const useMenuData = () => {
     useMenuItems,
     useMenuItemsSearch,
     useSides,
+    useItemSides,
     useCookingPoints,
   }
 }
