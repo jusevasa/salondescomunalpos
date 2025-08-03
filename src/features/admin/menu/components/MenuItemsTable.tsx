@@ -1,287 +1,680 @@
-import { useState, useCallback, useEffect } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type PaginationState,
+} from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus } from 'lucide-react'
-import { useMenuItems, useDeleteMenuItem, useUpdateMenuItem, useMenuCategories } from '../hooks'
-import type { MenuItemFilters, MenuItem } from '../types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
+import { AlertDialog } from '@/components/ui/alert-dialog'
+import { useToast } from '@/components/ui/toast'
 import MenuItemFormDialog from './MenuItemFormDialog'
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+} from 'lucide-react'
+import {
+  useMenuItems,
+  useMenuCategoriesForSelect,
+  useDeleteMenuItem,
+  useUpdateMenuItem,
+} from '../hooks'
+import type { MenuItem, MenuItemFilters } from '../types'
 
-export default function MenuItemsTable() {
-  const [page, setPage] = useState(1)
-  const [searchInput, setSearchInput] = useState('')
-  const [filters, setFilters] = useState<MenuItemFilters>({
-    search: '',
-    active: undefined,
-    category_id: undefined,
-    has_cooking_point: undefined,
-    has_sides: undefined
+interface MenuItemsTableProps {
+  className?: string
+}
+
+const columnHelper = createColumnHelper<MenuItem>()
+
+const MenuItemsTable: React.FC<MenuItemsTableProps> = ({ className }) => {
+  const isMobile = useIsMobile()
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
   })
-  const [showFormDialog, setShowFormDialog] = useState(false)
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedCookingPoint, setSelectedCookingPoint] = useState<string>('all')
+  const [selectedSide, setSelectedSide] = useState<string>('all')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [debouncedGlobalFilter, setDebouncedGlobalFilter] = useState('')
 
-  // Debounce search input
+  const { addToast } = useToast()
+
+  // Debounce the global filter
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchInput }))
-      setPage(1)
+      setDebouncedGlobalFilter(globalFilter)
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchInput])
+  }, [globalFilter])
 
-  const { data: itemsData, isLoading } = useMenuItems(filters, page, 10)
-  const { data: categoriesData } = useMenuCategories({ active: true }, 1, 100)
+  // Build filters object
+  const filters: MenuItemFilters = useMemo(() => {
+    const filterObj: MenuItemFilters = {}
+    
+    if (debouncedGlobalFilter) {
+      filterObj.search = debouncedGlobalFilter
+    }
+    if (selectedStatus && selectedStatus !== 'all') {
+      filterObj.active = selectedStatus === 'active'
+    }
+    if (selectedCategory && selectedCategory !== 'all') {
+      filterObj.category_id = parseInt(selectedCategory)
+    }
+    if (selectedCookingPoint && selectedCookingPoint !== 'all') {
+      filterObj.has_cooking_point = selectedCookingPoint === 'true'
+    }
+    if (selectedSide && selectedSide !== 'all') {
+      filterObj.has_sides = selectedSide === 'true'
+    }
+    
+    return filterObj
+  }, [debouncedGlobalFilter, selectedStatus, selectedCategory, selectedCookingPoint, selectedSide])
+
+  // Fetch data using hooks
+  const { data: itemsData, isLoading: itemsLoading, error: itemsError } = useMenuItems(
+    filters,
+    pagination.pageIndex + 1,
+    pagination.pageSize
+  )
+
+  const { data: categoriesOptions } = useMenuCategoriesForSelect()
+
+  // Mutations
   const deleteItemMutation = useDeleteMenuItem()
   const updateItemMutation = useUpdateMenuItem()
 
-  const handleSearchInput = useCallback((search: string) => {
-    setSearchInput(search)
-  }, [])
+  const handleDeleteItem = useCallback(async (item: MenuItem) => {
+    try {
+      await deleteItemMutation.mutateAsync(item.id)
+      addToast({
+          title: 'Éxito',
+          description: 'Ítem eliminado correctamente',
+          variant: 'success',
+        })
+        setDeleteDialogOpen(false)
+        setItemToDelete(null)
+      } catch (error) {
+        addToast({
+          title: 'Error',
+          description: 'Error al eliminar el ítem',
+          variant: 'error',
+        })
+      }
+    }, [deleteItemMutation, addToast])
 
-  const handleFilterChange = useCallback((key: keyof MenuItemFilters, value: boolean | number | undefined) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
-    setPage(1)
-  }, [])
-
-  const handleDelete = useCallback(async (id: number) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este item?')) {
-      await deleteItemMutation.mutateAsync(id)
+  const handleToggleActive = useCallback(async (item: MenuItem) => {
+    try {
+      await updateItemMutation.mutateAsync({
+        id: item.id,
+        data: { active: !item.active }
+      })
+      addToast({
+        title: "Éxito",
+        description: `Ítem ${item.active ? 'desactivado' : 'activado'} correctamente`,
+        variant: "success"
+      })
+    } catch (error) {
+      console.error('Error toggling item status:', error)
+      addToast({
+        title: "Error",
+        description: "No se pudo cambiar el estado del ítem",
+        variant: "error"
+      })
     }
-  }, [deleteItemMutation])
+  }, [updateItemMutation, addToast])
 
-  const handleToggleActive = useCallback(async (id: number, currentActive: boolean) => {
-    await updateItemMutation.mutateAsync({
-      id,
-      data: { active: !currentActive }
-    })
-  }, [updateItemMutation])
-
-  const handleOpenCreateForm = useCallback(() => {
-    setEditingItem(null)
-    setShowFormDialog(true)
+  const handleEdit = useCallback((item: MenuItem) => {
+    setItemToEdit(item)
+    setEditDialogOpen(true)
   }, [])
 
-  const handleOpenEditForm = useCallback((item: MenuItem) => {
-    setEditingItem(item)
-    setShowFormDialog(true)
+  const handleToggleStatus = useCallback((item: MenuItem) => {
+    handleToggleActive(item)
+  }, [handleToggleActive])
+
+  const handleDelete = useCallback((item: MenuItem) => {
+    setItemToDelete(item)
+    setDeleteDialogOpen(true)
   }, [])
 
-  const handleCloseForm = useCallback(() => {
-    setShowFormDialog(false)
-    setEditingItem(null)
-  }, [])
-
-  const formatPrice = useCallback((price: number) => {
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(price)
-  }, [])
+  }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  // Mobile Card Component
+  const MobileCard = ({ 
+    item, 
+    onEdit, 
+    onToggleStatus, 
+    onDelete 
+  }: { 
+    item: MenuItem;
+    onEdit: (item: MenuItem) => void;
+    onToggleStatus: (item: MenuItem) => void;
+    onDelete: (item: MenuItem) => void;
+  }) => (
+    <Card className="p-4 space-y-3">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h3 className="font-medium text-base">{item.name}</h3>
+          <p className="text-lg font-semibold text-primary mt-1">
+            {formatPrice(item.price || 0)}
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Abrir menú</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => onEdit(item)}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+                onClick={() => onToggleStatus(item)}
+              >
+                {item.active ? (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Desactivar
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Activar
+                  </>
+                )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onDelete(item)}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+      
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">
+          {item.menu_categories?.name || 'Sin categoría'}
+        </Badge>
+        <Badge variant={item.active ? 'default' : 'secondary'}>
+          {item.active ? 'Activo' : 'Inactivo'}
+        </Badge>
+        {item.has_cooking_point && (
+          <Badge variant="secondary">Punto de cocción</Badge>
+        )}
+        {item.has_sides && (
+          <Badge variant="secondary">Acompañamientos</Badge>
+        )}
+      </div>
+    </Card>
+  )
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('name', {
+        header: 'Nombre',
+        cell: (info) => (
+          <div className="font-medium">
+            {info.getValue()}
+          </div>
+        ),
+      }),
+      columnHelper.accessor('price', {
+        header: 'Precio',
+        cell: (info) => (
+          <div className="font-medium">
+            {formatPrice(info.getValue() || 0)}
+          </div>
+        ),
+      }),
+      columnHelper.accessor('menu_categories', {
+        header: 'Categoría',
+        cell: (info) => {
+          const category = info.getValue()
+          return (
+            <Badge variant="outline">
+              {category?.name || 'Sin categoría'}
+            </Badge>
+          )
+        },
+      }),
+      columnHelper.accessor('has_cooking_point', {
+         header: 'Punto de Cocción',
+         cell: (info) => (
+           <Badge variant={info.getValue() ? 'secondary' : 'outline'}>
+             {info.getValue() ? 'Sí' : 'No'}
+           </Badge>
+         ),
+       }),
+       columnHelper.accessor('has_sides', {
+         header: 'Acompañamientos',
+         cell: (info) => (
+           <Badge variant={info.getValue() ? 'secondary' : 'outline'}>
+             {info.getValue() ? 'Sí' : 'No'}
+           </Badge>
+         ),
+       }),
+      columnHelper.accessor('active', {
+        header: 'Estado',
+        cell: (info) => (
+          <Badge variant={info.getValue() ? 'default' : 'secondary'}>
+            {info.getValue() ? 'Activo' : 'Inactivo'}
+          </Badge>
+        ),
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'Acciones',
+        cell: ({ row }) => {
+          const item = row.original
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Abrir menú</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setItemToEdit(item)
+                    setEditDialogOpen(true)
+                  }}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleToggleActive(item)}
+                >
+                  {item.active ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      Desactivar
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Activar
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setItemToDelete(item)
+                    setDeleteDialogOpen(true)
+                  }}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        },
+      }),
+    ],
+    [handleToggleActive, formatPrice]
+  )
+
+  const table = useReactTable({
+    data: itemsData?.items || [],
+    columns,
+    pageCount: itemsData ? Math.ceil(itemsData.total / pagination.pageSize) : -1,
+    state: {
+      pagination,
+    },
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+  })
+
+  const LoadingSkeleton = () => (
+    <div className="space-y-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center space-x-4">
+          <Skeleton className="h-12 w-12 rounded" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (itemsLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Ítems del Menú</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoadingSkeleton />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (itemsError) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">Error al cargar los ítems del menú</p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Gestión de Items del Menú</CardTitle>
-          <Button onClick={handleOpenCreateForm}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Item
+    <>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold">Gestión de Menú</h2>
+          <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Ítem
           </Button>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Filtros */}
-        <div className="flex flex-wrap gap-4">
-          <Input
-            placeholder="Buscar items..."
-            value={searchInput}
-            onChange={(e) => handleSearchInput(e.target.value)}
-            className="max-w-sm"
-            autoFocus
-          />
-          <Select
-            value={filters.active?.toString() || 'all'}
-            onValueChange={(value) => handleFilterChange('active', value === 'all' ? undefined : value === 'true')}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="true">Activos</SelectItem>
-              <SelectItem value="false">Inactivos</SelectItem>
-            </SelectContent>
-          </Select>
 
-          <Select
-            value={filters.category_id?.toString() || 'all'}
-            onValueChange={(value) => handleFilterChange('category_id', value === 'all' ? undefined : parseInt(value))}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las categorías</SelectItem>
-              {categoriesData?.categories.map((category) => (
-                <SelectItem key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Card className={className}>
+          <CardHeader>
+            <CardTitle>Ítems del Menú</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Filters */}
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar ítems..."
+                    value={globalFilter}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                {!isMobile && (
+                  <Button variant="outline" size="sm">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filtros
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categoriesOptions?.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-          <Select
-            value={filters.has_cooking_point?.toString() || 'all'}
-            onValueChange={(value) => handleFilterChange('has_cooking_point', value === 'all' ? undefined : value === 'true')}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Cocina" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="true">Con cocina</SelectItem>
-              <SelectItem value="false">Sin cocina</SelectItem>
-            </SelectContent>
-          </Select>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="active">Activo</SelectItem>
+                    <SelectItem value="inactive">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
 
-          <Select
-            value={filters.has_sides?.toString() || 'all'}
-            onValueChange={(value) => handleFilterChange('has_sides', value === 'all' ? undefined : value === 'true')}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Acompañamientos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="true">Con acompañamientos</SelectItem>
-              <SelectItem value="false">Sin acompañamientos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+                <Select value={selectedCookingPoint} onValueChange={setSelectedCookingPoint}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Punto de cocción" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="true">Con punto de cocción</SelectItem>
+                    <SelectItem value="false">Sin punto de cocción</SelectItem>
+                  </SelectContent>
+                </Select>
 
-        {/* Tabla */}
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Precio</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Cocina</TableHead>
-                <TableHead>Acompañamientos</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {itemsData?.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.category?.name}</TableCell>
-                  <TableCell>{formatPrice(item.price)}</TableCell>
-                  <TableCell>
-                    <Badge variant={item.active ? 'default' : 'secondary'}>
-                      {item.active ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={item.has_cooking_point ? 'default' : 'outline'}>
-                      {item.has_cooking_point ? 'Sí' : 'No'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {item.has_sides && item.item_sides && item.item_sides.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          {item.item_sides.length} disponibles (máx: {item.max_sides_count})
-                        </Badge>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {item.item_sides.map((itemSide) => (
-                            <Badge key={itemSide.side_id} variant="secondary" className="text-xs">
-                              {itemSide.side?.name}
-                            </Badge>
+                <Select value={selectedSide} onValueChange={setSelectedSide}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Acompañamientos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="true">Con acompañamientos</SelectItem>
+                    <SelectItem value="false">Sin acompañamientos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Content */}
+            {isMobile ? (
+              // Mobile Cards View
+              <div className="space-y-4">
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <MobileCard
+                      key={row.id}
+                      item={row.original}
+                      onEdit={handleEdit}
+                      onToggleStatus={handleToggleStatus}
+                      onDelete={handleDelete}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No se encontraron resultados.
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Desktop Table View
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
                           ))}
-                        </div>
-                      </div>
+                        </TableRow>
+                      ))
                     ) : (
-                      <Badge variant="outline">No</Badge>
+                      <TableRow>
+                        <TableCell colSpan={columns.length} className="h-24 text-center">
+                          No se encontraron resultados.
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenEditForm(item)}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant={item.active ? 'secondary' : 'default'}
-                        size="sm"
-                        onClick={() => handleToggleActive(item.id, item.active)}
-                      >
-                        {item.active ? 'Desactivar' : 'Activar'}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        Eliminar
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
 
-        {/* Paginación */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {itemsData?.items.length || 0} de {itemsData?.total || 0} items
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p + 1)}
-              disabled={!itemsData || itemsData.items.length < 10}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
-      </CardContent>
+            {/* Pagination */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
+                Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} a{' '}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                  itemsData?.total || 0
+                )}{' '}
+                de {itemsData?.total || 0} resultados
+              </div>
+              <div className="flex items-center space-x-2">
+                {!isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.setPageIndex(0)}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  {isMobile && <span className="ml-1">Anterior</span>}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  {isMobile && <span className="mr-1">Siguiente</span>}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                {!isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      <MenuItemFormDialog
-        open={showFormDialog}
-        onClose={handleCloseForm}
-        menuItem={editingItem}
-      />
-    </Card>
+      {/* Delete Dialog */}
+       <AlertDialog
+         open={deleteDialogOpen}
+         onOpenChange={setDeleteDialogOpen}
+         title="Confirmar eliminación"
+         description={itemToDelete ? `¿Estás seguro de que quieres eliminar "${itemToDelete.name}"? Esta acción no se puede deshacer.` : ''}
+         variant="destructive"
+         confirmText="Eliminar"
+         cancelText="Cancelar"
+         onConfirm={() => itemToDelete ? handleDeleteItem(itemToDelete) : Promise.resolve()}
+         onCancel={() => {
+           setDeleteDialogOpen(false)
+           setItemToDelete(null)
+         }}
+       />
+
+       {/* Create Dialog */}
+       <MenuItemFormDialog
+         open={createDialogOpen}
+         onClose={() => setCreateDialogOpen(false)}
+       />
+
+       {/* Edit Dialog */}
+       {editDialogOpen && itemToEdit && (
+         <MenuItemFormDialog
+           open={editDialogOpen}
+           onClose={() => {
+             setEditDialogOpen(false)
+             setItemToEdit(null)
+           }}
+           menuItem={itemToEdit}
+         />
+       )}
+    </>
   )
 }
+
+export default MenuItemsTable
