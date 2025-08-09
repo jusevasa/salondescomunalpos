@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import {
   Sidebar,
@@ -11,6 +12,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
@@ -23,6 +27,10 @@ import {
   LogOut,
   ChefHat,
   UserCog,
+  Package,
+  Utensils,
+  Coffee,
+  Printer,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -30,37 +38,18 @@ interface AdminLayoutProps {
   children: ReactNode
 }
 
-const menuItems = [
-  {
-    title: "Órdenes",
-    url: "/admin/orders",
-    icon: ShoppingCart,
-  },
-  {
-    title: "Menú",
-    url: "/admin/menu",
-    icon: ChefHat,
-  },
-  {
-    title: "Mesas",
-    url: "/admin/tables",
-    icon: Users,
-  },
-  {
-    title: "Usuarios",
-    url: "/admin/users",
-    icon: UserCog,
-  },
-  {
-    title: "Reportes",
-    url: "/admin/reports",
-    icon: BarChart3,
-  },
-]
+//
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation()
   const { user, signOut } = useAuth()
+
+  const isMenuSectionActive = location.pathname.startsWith('/admin/menu')
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(isMenuSectionActive)
+
+  useEffect(() => {
+    setIsMenuOpen(isMenuSectionActive)
+  }, [isMenuSectionActive])
 
   const handleLogout = () => {
     signOut()
@@ -82,19 +71,108 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <SidebarGroupLabel>Administración</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {menuItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={location.pathname === item.url}
-                      >
-                        <Link to={item.url}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {/* Órdenes */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/admin/orders')}>
+                      <Link to="/admin/orders">
+                        <ShoppingCart className="h-4 w-4" />
+                        <span>Órdenes</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  {/* Menú con subitems */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isMenuSectionActive}
+                      onClick={() => setIsMenuOpen((v) => !v)}
+                    >
+                      <ChefHat className="h-4 w-4" />
+                      <span>Menú</span>
+                    </SidebarMenuButton>
+                    {isMenuOpen && (
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/menu/resumen'}>
+                            <Link to="/admin/menu/resumen">
+                              <BarChart3 className="h-4 w-4" />
+                              <span>Resumen</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/menu/categorias'}>
+                            <Link to="/admin/menu/categorias">
+                              <Package className="h-4 w-4" />
+                              <span>Categorías</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/menu/items'}>
+                            <Link to="/admin/menu/items">
+                              <Utensils className="h-4 w-4" />
+                              <span>Items</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/menu/acompanamientos'}>
+                            <Link to="/admin/menu/acompanamientos">
+                              <Coffee className="h-4 w-4" />
+                              <span>Acompañamientos</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/menu/puntos-de-coccion'}>
+                            <Link to="/admin/menu/puntos-de-coccion">
+                              <ChefHat className="h-4 w-4" />
+                              <span>Puntos de Cocción</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild isActive={location.pathname === '/admin/menu/estaciones'}>
+                            <Link to="/admin/menu/estaciones">
+                              <Printer className="h-4 w-4" />
+                              <span>Estaciones</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    )}
+                  </SidebarMenuItem>
+
+                  {/* Mesas */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/admin/tables')}>
+                      <Link to="/admin/tables">
+                        <Users className="h-4 w-4" />
+                        <span>Mesas</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  {/* Usuarios */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/admin/users')}>
+                      <Link to="/admin/users">
+                        <UserCog className="h-4 w-4" />
+                        <span>Usuarios</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  {/* Reportes */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/admin/reports')}>
+                      <Link to="/admin/reports">
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Reportes</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

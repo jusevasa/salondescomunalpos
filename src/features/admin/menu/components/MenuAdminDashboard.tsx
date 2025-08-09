@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -6,8 +6,6 @@ import {
   ChefHat, 
   Coffee, 
   Utensils, 
-  Printer, 
-  BarChart3, 
   TrendingUp,
   Package,
   FileSpreadsheet
@@ -20,8 +18,14 @@ import CookingPointsTable from './CookingPointsTable'
 import PrintStationsTable from './PrintStationsTable'
 import ExcelManager from './ExcelManager'
 
-export default function MenuAdminDashboard() {
-  const [activeTab, setActiveTab] = useState('overview')
+type MenuTab = 'resumen' | 'categorias' | 'items' | 'acompanamientos' | 'puntos-de-coccion' | 'estaciones'
+
+interface MenuAdminDashboardProps {
+  initialTab?: MenuTab
+}
+
+export default function MenuAdminDashboard({ initialTab = 'resumen' }: MenuAdminDashboardProps) {
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [showExcelManager, setShowExcelManager] = useState(false)
   
   const { data: stats } = useMenuStats()
@@ -67,26 +71,11 @@ export default function MenuAdminDashboard() {
     </Card>
   )
 
-  const TabButton = ({ 
-    id, 
-    label, 
-    icon: Icon, 
-    isActive 
-  }: { 
-    id: string
-    label: string
-    icon: React.ComponentType<{ className?: string }>
-    isActive: boolean 
-  }) => (
-    <Button
-      variant={isActive ? "default" : "outline"}
-      onClick={() => setActiveTab(id)}
-      className="gap-2"
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </Button>
-  )
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
+
+  // Removed Tab navigation buttons; navigation is handled via sidebar routes
 
   return (
     <div className="space-y-6">
@@ -110,48 +99,10 @@ export default function MenuAdminDashboard() {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2">
-        <TabButton
-          id="overview"
-          label="Resumen"
-          icon={BarChart3}
-          isActive={activeTab === 'overview'}
-        />
-        <TabButton
-          id="categories"
-          label="Categorías"
-          icon={Package}
-          isActive={activeTab === 'categories'}
-        />
-        <TabButton
-          id="items"
-          label="Items"
-          icon={Utensils}
-          isActive={activeTab === 'items'}
-        />
-        <TabButton
-          id="sides"
-          label="Acompañamientos"
-          icon={Coffee}
-          isActive={activeTab === 'sides'}
-        />
-        <TabButton
-          id="cooking-points"
-          label="Puntos de Cocción"
-          icon={ChefHat}
-          isActive={activeTab === 'cooking-points'}
-        />
-        <TabButton
-          id="print-stations"
-          label="Estaciones"
-          icon={Printer}
-          isActive={activeTab === 'print-stations'}
-        />
-      </div>
+      {/* Navegación por pestañas removida; usar subitems del sidebar */}
 
       {/* Tab Content */}
-      {activeTab === 'overview' && (
+      {activeTab === 'resumen' && (
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -252,11 +203,11 @@ export default function MenuAdminDashboard() {
       )}
 
       {/* Tab Content for other sections */}
-      {activeTab === 'categories' && <MenuCategoriesTable />}
+      {activeTab === 'categorias' && <MenuCategoriesTable />}
       {activeTab === 'items' && <MenuItemsTable />}
-      {activeTab === 'sides' && <SidesTable />}
-      {activeTab === 'cooking-points' && <CookingPointsTable />}
-      {activeTab === 'print-stations' && <PrintStationsTable />}
+      {activeTab === 'acompanamientos' && <SidesTable />}
+      {activeTab === 'puntos-de-coccion' && <CookingPointsTable />}
+      {activeTab === 'estaciones' && <PrintStationsTable />}
 
       {/* Excel Manager Modal */}
       {showExcelManager && (

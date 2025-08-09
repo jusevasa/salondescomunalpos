@@ -87,6 +87,16 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/admin/menu/:tab',
+    element: (
+      <ProtectedRoute allowedRoles={['admin']}>
+        <AdminLayout>
+          <AdminMenuPage />
+        </AdminLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: '/admin/tables',
     element: (
       <ProtectedRoute allowedRoles={['admin']}>
