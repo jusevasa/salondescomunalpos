@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Minus, ShoppingCart, X, Edit, Search, ChefHat, Utensils } from 'lucide-react'
+import { Plus, Minus, ShoppingCart, X, Edit, Search, ChefHat, Utensils, RefreshCcw } from 'lucide-react'
 import { useOrderManagement } from '../hooks/useOrderManagement'
 import { useMenuData } from '../hooks/useMenuData'
 import { useOrderById } from '../hooks/useOrderById'
@@ -48,14 +48,24 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
   const { printOrder } = usePrintServices()
   const { addToast } = useToast()
 
-  const { data: categories } = useMenuCategories()
-  const { data: cookingPoints } = useCookingPoints()
+  const { data: categories, refetch: refetchCategories, isFetching: isFetchingCategories } = useMenuCategories()
+  const { data: cookingPoints, refetch: refetchCookingPoints, isFetching: isFetchingCookingPoints } = useCookingPoints()
   
   // Use optimized search hook that queries Supabase directly
-  const { data: menuItems } = useMenuItemsSearch(
+  const { data: menuItems, refetch: refetchMenuItems, isFetching: isFetchingMenuItems } = useMenuItemsSearch(
     searchTerm.trim() || undefined,
     selectedCategory
   )
+  const isRefetchingMenu = isFetchingCategories || isFetchingMenuItems || isFetchingCookingPoints
+
+  const handleReloadMenu = async () => {
+    await Promise.all([
+      refetchCategories(),
+      refetchMenuItems(),
+      refetchCookingPoints(),
+    ])
+  }
+
 
   // Initialize form with order data
   useEffect(() => {
@@ -380,8 +390,18 @@ export default function EditOrderForm({ orderId, onSuccess, onCancel }: EditOrde
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Agregar Items al Menú</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReloadMenu}
+              disabled={isRefetchingMenu}
+              className="gap-2"
+            >
+              <RefreshCcw className={isRefetchingMenu ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+              Recargar
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Search Bar */}

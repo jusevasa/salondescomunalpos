@@ -2,10 +2,13 @@ import { useParams, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import EditOrderForm from '../../features/waiter/components/EditOrderForm'
+import { useOrderById } from '@/features/waiter/hooks/useOrderById'
 
 export default function EditOrderPage() {
   const { orderId } = useParams<{ orderId: string }>()
   const navigate = useNavigate()
+  const numericOrderId = orderId ? parseInt(orderId) : 0
+  const { data: order } = useOrderById(numericOrderId)
 
   if (!orderId) {
     return (
@@ -35,11 +38,16 @@ export default function EditOrderPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Mesas
         </Button>
-        <h1 className="text-3xl font-bold">Editar Orden #{orderId}</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Editar Orden #{orderId}</h1>
+          {order?.table && (
+            <p className="text-muted-foreground">Mesa {order.table.number} - Capacidad: {order.table.capacity} personas</p>
+          )}
+        </div>
       </div>
 
       <EditOrderForm
-        orderId={parseInt(orderId)}
+        orderId={numericOrderId}
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />

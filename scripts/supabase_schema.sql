@@ -53,6 +53,7 @@ CREATE TABLE menu_items (
 
 CREATE INDEX idx_menu_items_category_id ON menu_items(category_id);
 CREATE INDEX idx_menu_items_active ON menu_items(active);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_menu_items_name ON menu_items(name);
 
 -- Sides
 CREATE TABLE sides (
