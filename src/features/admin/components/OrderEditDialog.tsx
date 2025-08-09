@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useToast, ToastContainer } from '@/components/ui/toast'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, roundCOP, safeNumber } from '@/lib/utils'
 import {
   Edit3,
   Minus,
@@ -264,27 +264,26 @@ function OrderEditDialogContent({ order, open, onOpenChange }: OrderEditDialogPr
   const calculateTotals = () => {
     if (!order?.items || order.items.length === 0) return { subtotal: 0, tax: 0, total: 0 }
 
-    let subtotal = 0
-    let tax = 0
+    let rawSubtotal = 0
+    let rawTax = 0
 
     Object.values(editingItems).forEach(item => {
       const originalItem = order.items.find(oi => oi.id === item.id)
       if (originalItem) {
-        // Buscar el menu item completo para obtener base_price
         const orderItem = order.order_items?.find(oi => oi.id === item.id)
-        const menuItem = orderItem?.menu_items
-        
-        // Usar base_price si está disponible, sino usar price
-        const unitPrice = menuItem?.base_price || originalItem.price
-        const itemSubtotal = unitPrice * item.quantity
-        subtotal += itemSubtotal
-        
-        const itemTaxRate = menuItem?.tax || 0
-        tax += itemSubtotal * itemTaxRate
+        const menuItem = orderItem?.menu_items as any
+        const unitPrice = safeNumber(menuItem?.base_price ?? originalItem.price, 0)
+        const itemSubtotal = unitPrice * safeNumber(item.quantity, 0)
+        rawSubtotal += itemSubtotal
+        const itemTaxPercent = safeNumber(menuItem?.tax, 0)
+        const itemTaxRate = itemTaxPercent / 100
+        rawTax += itemSubtotal * itemTaxRate
       }
     })
 
-    const total = subtotal + tax
+    const subtotal = roundCOP(rawSubtotal)
+    const tax = roundCOP(rawTax)
+    const total = roundCOP(subtotal + tax)
 
     return { subtotal, tax, total }
   }

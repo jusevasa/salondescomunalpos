@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/config/supabase'
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { roundCOP, safeNumber } from '@/lib/utils'
 import { es } from 'date-fns/locale';
 
 
@@ -350,22 +351,25 @@ export const ordersService = {
       if (itemsError) throw itemsError
 
       // Calculate subtotal using base_price if available, otherwise use unit_price
-      const subtotal = orderItems.reduce((sum, item) => {
+      const rawSubtotal = orderItems.reduce((sum, item) => {
         const menuItem = item.menu_items as any
-        const unitPrice = menuItem?.base_price || item.unit_price
-        return sum + (unitPrice * item.quantity)
+        const unitPrice = safeNumber(menuItem?.base_price ?? item.unit_price, 0)
+        return sum + (unitPrice * safeNumber(item.quantity, 0))
       }, 0)
 
-      // Calculate tax based on each item's tax rate using base_price
-      const taxAmount = orderItems.reduce((sum, item) => {
+      // Calculate tax based on each item's tax rate (stored as percent 0-100) using base_price
+      const rawTaxAmount = orderItems.reduce((sum, item) => {
         const menuItem = item.menu_items as any
-        const itemTaxRate = menuItem?.tax || 0
-        const unitPrice = menuItem?.base_price || item.unit_price
-        const itemSubtotal = unitPrice * item.quantity
+        const itemTaxPercent = safeNumber(menuItem?.tax, 0)
+        const itemTaxRate = itemTaxPercent / 100
+        const unitPrice = safeNumber(menuItem?.base_price ?? item.unit_price, 0)
+        const itemSubtotal = unitPrice * safeNumber(item.quantity, 0)
         return sum + (itemSubtotal * itemTaxRate)
       }, 0)
 
-      const totalAmount = subtotal + taxAmount
+      const subtotal = roundCOP(rawSubtotal)
+      const taxAmount = roundCOP(rawTaxAmount)
+      const totalAmount = roundCOP(subtotal + taxAmount)
 
       // Update order totals
       const { error: updateError } = await supabase
@@ -427,28 +431,33 @@ export const paymentService = {
       if (orderError) throw orderError
 
       // Calculate subtotal based on base_price
-      const basePriceSubtotal = order.order_items?.reduce((sum: number, item: any) => {
-        const unitPrice = item.menu_items?.base_price || item.unit_price
-        return sum + (unitPrice * item.quantity)
-      }, 0) || order.total_amount
+      const basePriceSubtotalRaw = order.order_items?.reduce((sum: number, item: any) => {
+        const unitPrice = safeNumber(item.menu_items?.base_price ?? item.unit_price, 0)
+        return sum + (unitPrice * safeNumber(item.quantity, 0))
+      }, 0) || safeNumber(order.total_amount, 0)
 
-      // Calculate payment details using base_price subtotal for tips
+      const basePriceSubtotal = roundCOP(basePriceSubtotalRaw)
+
+      // Calculate tip using percentage on base_price subtotal or fixed amount
       let tipAmount = 0
       if (request.tipPercentage) {
-        tipAmount = (basePriceSubtotal * request.tipPercentage) / 100
+        tipAmount = roundCOP((basePriceSubtotal * safeNumber(request.tipPercentage, 0)) / 100)
       } else if (request.tipAmount) {
-        tipAmount = request.tipAmount
+        tipAmount = roundCOP(safeNumber(request.tipAmount, 0))
       }
 
-      const totalToPay = order.total_amount + tipAmount
-      const changeAmount = request.receivedAmount ? Math.max(0, request.receivedAmount - totalToPay) : 0
+      const orderTotalAmount = roundCOP(safeNumber(order.total_amount, 0))
+      const totalToPay = roundCOP(orderTotalAmount + tipAmount)
+      const changeAmount = request.receivedAmount
+        ? roundCOP(Math.max(0, safeNumber(request.receivedAmount, 0) - totalToPay))
+        : 0
 
       const dateTimeNow = format(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: es })
 
       const paymentData = {
         order_id: request.orderId,
         payment_method_id: request.paymentMethodId,
-        amount: order.total_amount,
+        amount: orderTotalAmount,
         tip_amount: tipAmount,
         tip_percentage: request.tipPercentage,
         total_paid: totalToPay,

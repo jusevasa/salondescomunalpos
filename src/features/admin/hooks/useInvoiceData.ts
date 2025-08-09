@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { roundCOP, safeNumber } from '@/lib/utils'
 import type { Order, PaymentMethod } from '../types'
 
 // Tipos para los datos de factura persistidos
@@ -85,18 +86,18 @@ export const useInvoiceData = () => {
     notes?: string
   ) => {
     try {
-      const totalToPay = order.total_amount + tipAmount
+      const totalToPay = roundCOP(safeNumber(order.total_amount, 0) + safeNumber(tipAmount, 0))
 
       const invoiceData: InvoiceData = {
         orderId: order.id,
         orderData: order,
         paymentMethodId: paymentMethod.id,
         paymentMethodName: paymentMethod.name,
-        tipAmount,
+        tipAmount: roundCOP(safeNumber(tipAmount, 0)),
         tipPercentage,
         tipMode,
         receivedAmount,
-        changeAmount,
+        changeAmount: changeAmount !== undefined ? roundCOP(safeNumber(changeAmount, 0)) : undefined,
         notes,
         totalToPay,
         timestamp: Date.now()

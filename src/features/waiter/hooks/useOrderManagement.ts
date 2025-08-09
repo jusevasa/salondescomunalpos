@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
+import { roundCOP, safeNumber } from '@/lib/utils'
 
 export const useOrderManagement = () => {
   const queryClient = useQueryClient();
@@ -202,16 +203,18 @@ export const useOrderManagement = () => {
 
     if (error) throw error;
 
-    const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    
-    // Calcular el tax basándose en el valor real de cada item del menú
-    const taxAmount = orderItems.reduce((sum, item) => {
-      const itemTaxRate = (item.menu_item as any)?.tax || 0;
-      const itemTaxAmount = item.subtotal * (itemTaxRate / 100);
+    const rawSubtotal = orderItems.reduce((sum, item) => sum + safeNumber(item.subtotal, 0), 0);
+    // Impuesto: el schema de items usa porcentaje 0-100, convertir a decimal
+    const rawTaxAmount = orderItems.reduce((sum, item) => {
+      const itemTaxPercent = safeNumber((item.menu_item as any)?.tax, 0);
+      const itemTaxRate = itemTaxPercent / 100;
+      const itemTaxAmount = safeNumber(item.subtotal, 0) * itemTaxRate;
       return sum + itemTaxAmount;
     }, 0);
-    
-    const totalAmount = subtotal + taxAmount;
+
+    const subtotal = roundCOP(rawSubtotal);
+    const taxAmount = roundCOP(rawTaxAmount);
+    const totalAmount = roundCOP(subtotal + taxAmount);
 
     await supabase
       .from('orders')

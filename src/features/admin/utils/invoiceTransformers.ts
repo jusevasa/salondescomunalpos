@@ -1,4 +1,5 @@
 import type { Order, PaymentMethod } from '../types'
+import { roundCOP, safeNumber } from '@/lib/utils'
 import type {
   PrintInvoiceRequest,
   InvoiceMenuItem,
@@ -47,8 +48,8 @@ const groupInvoiceItems = (items: InvoiceMenuItem[]): InvoiceMenuItem[] => {
       // Si ya existe, sumar cantidades y recalcular totales
       const existingItem = groupedMap.get(key)!
       const newQuantity = existingItem.quantity + item.quantity
-      const newSubtotal = existingItem.unit_price * newQuantity
-      const newTaxAmount = newSubtotal * existingItem.tax_rate
+      const newSubtotal = roundCOP(existingItem.unit_price * newQuantity)
+      const newTaxAmount = roundCOP(newSubtotal * existingItem.tax_rate)
 
       groupedMap.set(key, {
         ...existingItem,
@@ -90,12 +91,12 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     order.order_items.forEach(dbItem => {
       if (dbItem.menu_items) {
         // Asegurar que todos los valores numéricos sean válidos
-        const quantity = dbItem.quantity || 1
+        const quantity = safeNumber(dbItem.quantity, 1)
         // IMPORTANTE: Para facturas usamos el price (precio final) no el unit_price (base_price)
-        const unitPrice = dbItem.menu_items.price || 0
-        const subtotal = unitPrice * quantity // Recalcular subtotal con el precio correcto
-        const taxRate = ((dbItem.menu_items.tax / 100)) || 0.08 // Usar el tax del menu_item o 19% por defecto
-        const taxAmount = subtotal * taxRate
+        const unitPrice = safeNumber(dbItem.menu_items.price, 0)
+        const subtotal = roundCOP(unitPrice * quantity)
+        const taxRate = safeNumber(dbItem.menu_items.tax, 0) / 100
+        const taxAmount = roundCOP(subtotal * taxRate)
 
         invoiceItems.push({
           menu_item_id: dbItem.menu_items.id,
@@ -115,11 +116,11 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
   else if (order.items && order.items.length > 0) {
     order.items.forEach(item => {
       // Asegurar que todos los valores numéricos sean válidos
-      const quantity = item.quantity || 1
-      const unitPrice = item.price || 0
-      const subtotal = item.subtotal || 0
-      const taxRate = 0.19 // 19% IVA por defecto para items simplificados
-      const taxAmount = subtotal * taxRate
+      const quantity = safeNumber(item.quantity, 1)
+      const unitPrice = safeNumber(item.price, 0)
+      const subtotal = roundCOP(safeNumber(item.subtotal, unitPrice * quantity))
+      const taxRate = 0.19
+      const taxAmount = roundCOP(subtotal * taxRate)
 
       invoiceItems.push({
         menu_item_id: item.id,
@@ -184,11 +185,11 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
   const dinersCount = order.diners_count || 1 // Asegurar que siempre sea un número válido
 
   // Asegurar que todos los totales sean números válidos
-  const subtotal = order.subtotal || 0
-  const taxAmount = order.tax_amount || 0
-  const totalAmount = order.total_amount || 0
-  const finalTipAmount = tipAmount || 0
-  const grandTotal = totalAmount + finalTipAmount
+  const subtotal = roundCOP(safeNumber(order.subtotal, 0))
+  const taxAmount = roundCOP(safeNumber(order.tax_amount, 0))
+  const totalAmount = roundCOP(safeNumber(order.total_amount, 0))
+  const finalTipAmount = roundCOP(safeNumber(tipAmount, 0))
+  const grandTotal = roundCOP(totalAmount + finalTipAmount)
 
   // Construir request de factura
   const invoiceRequest: PrintInvoiceRequest = {

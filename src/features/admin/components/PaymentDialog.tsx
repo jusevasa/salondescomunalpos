@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Calculator, CreditCard, DollarSign, Receipt, Printer } from 'lucide-react'
+import { roundCOP } from '@/lib/utils'
 import { usePaymentMethods, useProcessPayment, useInvoiceData, usePrintInvoiceFromPayment } from '../hooks'
 import { paymentSchema, cashPaymentSchema } from '@/lib/validations/payment'
 import type { PaymentFormData, CashPaymentFormData } from '@/lib/validations/payment'
@@ -82,9 +83,9 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
   const tipAmount = watchedValues.tipAmount || 0
   const receivedAmount = watchedValues.receivedAmount || 0
   
-  const calculatedTipAmount = tipMode === 'percentage' ? (subtotalAmount * tipPercentage) / 100 : tipAmount
-  const totalToPay = orderAmount + calculatedTipAmount
-  const changeAmount = Math.max(0, receivedAmount - totalToPay)
+  const calculatedTipAmount = tipMode === 'percentage' ? roundCOP((subtotalAmount * tipPercentage) / 100) : roundCOP(tipAmount)
+  const totalToPay = roundCOP(orderAmount + calculatedTipAmount)
+  const changeAmount = roundCOP(Math.max(0, receivedAmount - totalToPay))
 
   // Quick tip buttons
   const quickTipPercentages = [0, 10, 15, 20]

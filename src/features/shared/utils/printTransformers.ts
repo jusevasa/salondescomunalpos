@@ -12,6 +12,7 @@ import type {
   DatabaseOrderItem,
   DatabasePayment
 } from '../types/database'
+import { roundCOP, safeNumber } from '@/lib/utils'
 
 // ============================================================================
 // UTILIDADES DE TRANSFORMACIÓN
@@ -32,9 +33,9 @@ export const transformOrderToPrintRequest = (order: DatabaseOrder): PrintOrderRe
     order_notes: order.notes,
     created_at: order.created_at,
     print_groups: printGroups,
-    subtotal: order.subtotal,
-    tax_amount: order.tax_amount,
-    total_amount: order.total_amount
+    subtotal: roundCOP(safeNumber(order.subtotal, 0)),
+    tax_amount: roundCOP(safeNumber(order.tax_amount, 0)),
+    total_amount: roundCOP(safeNumber(order.total_amount, 0))
   }
 }
 
@@ -45,11 +46,11 @@ export const transformOrderToInvoiceRequest = (order: DatabaseOrder, restaurantI
   const items: InvoiceMenuItem[] = (order.order_items || []).map(item => ({
     menu_item_id: item.menu_item_id,
     menu_item_name: item.menu_items?.name || 'Item desconocido',
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    subtotal: item.subtotal,
-    tax_rate: item.menu_items?.tax || 0,
-    tax_amount: item.subtotal * (item.menu_items?.tax || 0),
+    quantity: safeNumber(item.quantity, 0),
+    unit_price: safeNumber(item.unit_price, 0),
+    subtotal: roundCOP(safeNumber(item.subtotal, 0)),
+    tax_rate: safeNumber(item.menu_items?.tax, 0) / 100,
+    tax_amount: roundCOP(safeNumber(item.subtotal, 0) * (safeNumber(item.menu_items?.tax, 0) / 100)),
     cooking_point: item.cooking_points ? {
       id: item.cooking_points.id,
       name: item.cooking_points.name
@@ -78,11 +79,11 @@ export const transformOrderToInvoiceRequest = (order: DatabaseOrder, restaurantI
     waiter_name: order.profiles?.name || 'Mesero',
     created_at: order.created_at,
     items,
-    subtotal: order.subtotal,
-    tax_amount: order.tax_amount,
-    total_amount: order.total_amount,
-    tip_amount: order.tip_amount,
-    grand_total: order.grand_total,
+    subtotal: roundCOP(safeNumber(order.subtotal, 0)),
+    tax_amount: roundCOP(safeNumber(order.tax_amount, 0)),
+    total_amount: roundCOP(safeNumber(order.total_amount, 0)),
+    tip_amount: roundCOP(safeNumber(order.tip_amount, 0)),
+    grand_total: roundCOP(safeNumber(order.grand_total, 0)),
     payment: paymentInfo,
     restaurant_info: restaurantInfo || defaultRestaurantInfo
   }
@@ -181,7 +182,7 @@ const determinePaymentMethod = (payments: DatabasePayment[], grandTotal: number)
   })
 
   const totalPaid = cashAmount + cardAmount
-  const changeAmount = Math.max(0, totalPaid - grandTotal)
+  const changeAmount = roundCOP(Math.max(0, totalPaid - grandTotal))
 
   let method: 'cash' | 'card' | 'mixed'
   let paymentMethodName: string

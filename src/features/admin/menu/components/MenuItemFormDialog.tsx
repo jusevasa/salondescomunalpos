@@ -35,6 +35,7 @@ interface MenuItemFormDialogProps {
 
 export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItemFormDialogProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [autoBasePrice, setAutoBasePrice] = useState(true)
   const isEditing = !!menuItem
 
   const createMenuItemMutation = useCreateMenuItem()
@@ -66,6 +67,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
   // Reset form when dialog opens/closes or menu item changes
   useEffect(() => {
     if (open) {
+      setAutoBasePrice(true)
       if (menuItem) {
         reset({
           name: menuItem.name,
@@ -102,13 +104,13 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
 
   // Calcular automáticamente el precio base cuando cambien el precio de venta o el impuesto
   useEffect(() => {
-    if (watchPrice > 0 && watchTax >= 0 && !watch('base_price')) {
+    if (autoBasePrice && watchPrice > 0 && watchTax >= 0) {
       const taxDecimal = watchTax / 100
       const basePrice = watchPrice / (1 + taxDecimal)
       const roundedBasePrice = Math.round(basePrice * 100) / 100
       setValue('base_price', roundedBasePrice)
     }
-  }, [watchPrice, watchTax, setValue, watch])
+  }, [autoBasePrice, watchPrice, watchTax, setValue])
 
   const onSubmit = async (data: FieldValues) => {
     try {
@@ -210,7 +212,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[720px] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Item del Menú' : 'Nuevo Item del Menú'}
@@ -225,7 +227,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Información básica */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del Item</Label>
               <Input
@@ -277,7 +279,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
           </div>
 
           {/* Precios */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Precio de Venta</Label>
               <Input
@@ -294,31 +296,40 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="base_price">Precio Base (Opcional)</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={calculateBasePrice}
-                  className="h-6 px-2 text-xs"
-                  disabled={!watch('price') || watch('price') <= 0}
-                  title="Calcular precio base automáticamente usando: Precio de Venta ÷ (1 + Impuesto%)"
-                >
-                  <Calculator className="h-3 w-3 mr-1" />
-                  Calcular
-                </Button>
+              <Label htmlFor="base_price">Precio base</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="base_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register('base_price', { valueAsNumber: true })}
+                  placeholder={autoBasePrice ? 'Se calcula automáticamente' : 'Ingresa el precio base'}
+                  disabled={autoBasePrice}
+                />
+                {!autoBasePrice && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={calculateBasePrice}
+                    disabled={!watch('price') || watch('price') <= 0}
+                  >
+                    <Calculator className="h-4 w-4 mr-1" />
+                    Calcular precio base
+                  </Button>
+                )}
               </div>
-              <Input
-                id="base_price"
-                type="number"
-                step="0.01"
-                min="0"
-                {...register('base_price', { valueAsNumber: true })}
-                placeholder="Se calculará automáticamente"
-              />
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>Fórmula: Precio de Venta ÷ (1 + Impuesto%)</p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="auto_base_price"
+                  checked={autoBasePrice}
+                  onCheckedChange={(checked) => setAutoBasePrice(Boolean(checked))}
+                />
+                <Label htmlFor="auto_base_price" className="text-sm">Calcular automáticamente con precio e impuesto</Label>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>Fórmula: Precio de venta ÷ (1 + Impuesto%)</p>
                 {watchPrice > 0 && watchTax >= 0 && (
                   <p className="text-blue-600 font-medium">
                     Ejemplo: ${watchPrice} ÷ (1 + {watchTax}%) = ${((watchPrice / (1 + watchTax / 100)) || 0).toFixed(2)}
@@ -329,7 +340,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
           </div>
 
           {/* Impuestos y comisiones */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="tax">Impuesto (%)</Label>
               <Input
