@@ -19,6 +19,8 @@ interface DatePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  disableFuture?: boolean
+  defaultMonth?: Date
 }
 
 export function DatePicker({
@@ -26,7 +28,9 @@ export function DatePicker({
   onSelect,
   placeholder = "Seleccionar fecha",
   disabled = false,
-  className
+  className,
+  disableFuture = false,
+  defaultMonth
 }: DatePickerProps) {
   return (
     <Popover>
@@ -50,6 +54,8 @@ export function DatePicker({
           selected={date}
           onSelect={onSelect}
           initialFocus
+          defaultMonth={defaultMonth}
+          disabled={disableFuture ? { after: new Date() } : undefined}
         />
       </PopoverContent>
     </Popover>
@@ -65,6 +71,7 @@ interface DateRangePickerProps {
   placeholderTo?: string
   disabled?: boolean
   className?: string
+  disableFuture?: boolean
 }
 
 export function DateRangePicker({
@@ -75,7 +82,8 @@ export function DateRangePicker({
   placeholderFrom = "Fecha desde",
   placeholderTo = "Fecha hasta",
   disabled = false,
-  className
+  className,
+  disableFuture = false
 }: DateRangePickerProps) {
   return (
     <div className={cn("flex flex-col sm:flex-row gap-2", className)}>
@@ -85,6 +93,8 @@ export function DateRangePicker({
         placeholder={placeholderFrom}
         disabled={disabled}
         className="flex-1"
+        disableFuture={disableFuture}
+        defaultMonth={(dateFrom ?? dateTo) || new Date()}
       />
       <DatePicker
         date={dateTo}
@@ -92,6 +102,8 @@ export function DateRangePicker({
         placeholder={placeholderTo}
         disabled={disabled}
         className="flex-1"
+        disableFuture={disableFuture}
+        defaultMonth={(dateTo ?? dateFrom) || new Date()}
       />
     </div>
   )

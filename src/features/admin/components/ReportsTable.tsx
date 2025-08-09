@@ -7,6 +7,8 @@ import { DateRangePicker } from '@/components/ui/date-picker'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { CalendarIcon, TrendingUpIcon, DollarSignIcon, PieChartIcon, ReceiptIcon, ClockIcon, EyeIcon } from 'lucide-react'
 import { useSalesReport, usePaidOrders } from '../hooks'
+import { exportSalesReportToExcel } from '../services/reportExportService'
+import { useToast } from '@/components/ui/toast'
 import { formatCurrency } from '@/lib/utils'
 import { getTodayString, formatDateForInput, parseDate, formatDateDisplay } from '@/lib/utils/date'
 import type { ReportsFilters } from '../types'
@@ -25,6 +27,7 @@ export default function ReportsTable() {
 
   const { data: reportData, isLoading, error } = useSalesReport(filters)
   const { data: paidOrders, isLoading: isLoadingOrders, error: ordersError } = usePaidOrders(filters)
+  const { addToast } = useToast()
 
   // Componente para mostrar detalles de la orden
   const OrderDetailsModal = ({ order }: { order: any }) => (
@@ -116,24 +119,58 @@ export default function ReportsTable() {
   )
 
   const handleDateFromChange = (date: Date | undefined) => {
-    setDateFrom(date)
-    if (date) {
-      const dateStr = formatDateForInput(date)
+    const today = new Date()
+    const selected = date && date > today ? today : date
+    setDateFrom(selected)
+    if (selected) {
+      if (date && date > today) {
+        addToast({
+          title: 'Fecha ajustada',
+          description: 'No se permiten fechas futuras. Se ajustó a hoy.',
+          variant: 'info'
+        })
+      }
+      const dateStr = formatDateForInput(selected)
       setFilters(prev => ({
         ...prev,
         date_from: dateStr
       }))
+      // If from > to, align to
+      if (dateTo && selected > dateTo) {
+        setDateTo(selected)
+        setFilters(prev => ({
+          ...prev,
+          date_to: dateStr
+        }))
+      }
     }
   }
 
   const handleDateToChange = (date: Date | undefined) => {
-    setDateTo(date)
-    if (date) {
-      const dateStr = formatDateForInput(date)
+    const today = new Date()
+    const selected = date && date > today ? today : date
+    setDateTo(selected)
+    if (selected) {
+      if (date && date > today) {
+        addToast({
+          title: 'Fecha ajustada',
+          description: 'No se permiten fechas futuras. Se ajustó a hoy.',
+          variant: 'info'
+        })
+      }
+      const dateStr = formatDateForInput(selected)
       setFilters(prev => ({
         ...prev,
         date_to: dateStr
       }))
+      // If to < from, align from
+      if (dateFrom && selected < dateFrom) {
+        setDateFrom(selected)
+        setFilters(prev => ({
+          ...prev,
+          date_from: dateStr
+        }))
+      }
     }
   }
 
@@ -145,6 +182,23 @@ export default function ReportsTable() {
       date_from: todayStr,
       date_to: todayStr
     })
+  }
+
+  const handleExport = async () => {
+    try {
+      await exportSalesReportToExcel(filters)
+      addToast({
+        title: 'Exportación iniciada',
+        description: 'Se descargó el archivo Excel del período seleccionado.',
+        variant: 'success'
+      })
+    } catch (e) {
+      addToast({
+        title: 'Error al exportar',
+        description: e instanceof Error ? e.message : 'No se pudo generar el Excel',
+        variant: 'error'
+      })
+    }
   }
 
   if (error) {
@@ -182,6 +236,7 @@ export default function ReportsTable() {
               placeholderFrom="Fecha desde"
               placeholderTo="Fecha hasta"
               className="flex-1"
+              disableFuture
             />
             <Button
               variant="outline"
@@ -189,6 +244,9 @@ export default function ReportsTable() {
               className="whitespace-nowrap"
             >
               Hoy
+            </Button>
+            <Button onClick={handleExport} className="whitespace-nowrap">
+              Descargar Excel
             </Button>
           </div>
         </CardContent>
