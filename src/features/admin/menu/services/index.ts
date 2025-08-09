@@ -425,45 +425,56 @@ export const menuItemsService = {
   async bulkUpsertByName(items: MenuItemFormData[]): Promise<{ created: number; updated: number }> {
     if (!items || items.length === 0) return { created: 0, updated: 0 }
 
-    const normalizeName = (value: string) => value.trim().replace(/\s+/g, ' ')
-
-    // Deduplicar dentro del mismo batch por nombre normalizado (último gana)
-    const dedupMap = new Map<string, MenuItemFormData>()
-    for (const it of items) {
-      const key = normalizeName(it.name).toLowerCase()
-      dedupMap.set(key, { ...it, name: normalizeName(it.name) })
-    }
-    const deduped = Array.from(dedupMap.values())
-
-    const names = Array.from(new Set(deduped.map(i => i.name)))
-
-    const { data: existing, error: fetchError } = await supabase
-      .from('menu_items')
-      .select('id, name')
-      .in('name', names)
-
-    if (fetchError) throw fetchError
-
-    const nameToId = new Map((existing || []).map(e => [normalizeName(e.name as string), e.id as number]))
+    const normalizeSpaces = (value: string) => value.trim().replace(/\s+/g, ' ')
+    const canonical = (value: string) =>
+      normalizeSpaces(value)
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
 
     const nowIso = new Date().toISOString()
 
-    // Importante: no incluir 'id' en ninguna fila para evitar insertar NULL en filas nuevas.
-    // PostgREST usa un único INSERT con columnas unificadas; si alguna fila tiene 'id', las demás reciben NULL.
-    const rows = deduped.map(i => ({
-      name: normalizeName(i.name),
-      price: i.price,
-      base_price: i.base_price,
-      category_id: i.category_id,
-      active: i.active,
-      tax: i.tax,
-      fee: i.fee,
-      author: i.author,
-      has_cooking_point: i.has_cooking_point,
-      has_sides: i.has_sides,
-      max_sides_count: i.max_sides_count,
-      updated_at: nowIso
-    }))
+    // Deduplicar por clave canónica dentro del mismo batch (último gana)
+    const dedupByCanonical = new Map<string, MenuItemFormData>()
+    for (const incoming of items) {
+      const key = canonical(incoming.name)
+      dedupByCanonical.set(key, { ...incoming, name: normalizeSpaces(incoming.name) })
+    }
+    const deduped = Array.from(dedupByCanonical.values())
+
+    // Cargar todos los nombres existentes para mapear por clave canónica
+    const { data: existingAll, error: fetchAllError } = await supabase
+      .from('menu_items')
+      .select('id, name')
+
+    if (fetchAllError) throw fetchAllError
+
+    const canonicalToExisting = new Map<string, { id: number; name: string }>()
+    for (const row of existingAll || []) {
+      const existingName = String(row.name)
+      canonicalToExisting.set(canonical(existingName), { id: row.id as number, name: existingName })
+    }
+
+    // Construir filas para upsert: si existe por clave canónica, usar el nombre exacto existente
+    const rows = deduped.map(i => {
+      const key = canonical(i.name)
+      const existing = canonicalToExisting.get(key)
+      const persistedName = existing ? existing.name : normalizeSpaces(i.name)
+      return {
+        name: persistedName,
+        price: i.price,
+        base_price: i.base_price,
+        category_id: i.category_id,
+        active: i.active,
+        tax: i.tax,
+        fee: i.fee,
+        author: i.author,
+        has_cooking_point: i.has_cooking_point,
+        has_sides: i.has_sides,
+        max_sides_count: i.max_sides_count,
+        updated_at: nowIso
+      }
+    })
 
     const { error: upsertError } = await supabase
       .from('menu_items')
@@ -471,7 +482,7 @@ export const menuItemsService = {
 
     if (upsertError) throw upsertError
 
-    const created = rows.filter(r => !nameToId.has(r.name)).length
+    const created = rows.filter(r => !canonicalToExisting.has(canonical(r.name))).length
     const updated = rows.length - created
 
     return { created, updated }
