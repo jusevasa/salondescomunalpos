@@ -24,6 +24,7 @@ import {
   useUpdateMenuCategory, 
   useDeleteMenuCategory 
 } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import { 
   menuCategoryFiltersSchema, 
   validateFilters
@@ -66,6 +67,7 @@ export default function MenuCategoriesTable() {
 
   const updateMutation = useUpdateMenuCategory()
   const deleteMutation = useDeleteMenuCategory()
+  const { addToast } = useToast()
 
   const handleEdit = (categoryId: number) => {
     const category = categoriesData?.categories.find(c => c.id === categoryId)
@@ -75,15 +77,29 @@ export default function MenuCategoriesTable() {
 
   const handleDelete = async (categoryId: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
-      await deleteMutation.mutateAsync(categoryId)
+      try {
+        await deleteMutation.mutateAsync(categoryId)
+        addToast({ title: 'Éxito', description: 'Categoría eliminada', variant: 'success' })
+      } catch (_) {
+        addToast({ title: 'Error', description: 'No se pudo eliminar la categoría', variant: 'error' })
+      }
     }
   }
 
   const handleToggleActive = async (categoryId: number, currentStatus: boolean) => {
-    await updateMutation.mutateAsync({
-      id: categoryId,
-      data: { active: !currentStatus }
-    })
+    try {
+      await updateMutation.mutateAsync({
+        id: categoryId,
+        data: { active: !currentStatus }
+      })
+      addToast({
+        title: 'Éxito',
+        description: `Categoría ${currentStatus ? 'desactivada' : 'activada'}`,
+        variant: 'success'
+      })
+    } catch (_) {
+      addToast({ title: 'Error', description: 'No se pudo cambiar el estado', variant: 'error' })
+    }
   }
 
   const handleCreateNew = () => {

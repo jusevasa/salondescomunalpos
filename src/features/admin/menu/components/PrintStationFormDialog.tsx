@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useCreatePrintStation, useUpdatePrintStation, useDeletePrintStation } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import type { PrintStation, PrintStationFormData } from '../types'
 
 interface PrintStationFormDialogProps {
@@ -36,6 +37,7 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
   const createPrintStationMutation = useCreatePrintStation()
   const updatePrintStationMutation = useUpdatePrintStation()
   const deletePrintStationMutation = useDeletePrintStation()
+  const { addToast } = useToast()
 
   // Reset form when dialog opens/closes or print station changes
   useEffect(() => {
@@ -106,12 +108,14 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
           id: printStation.id,
           data: submitData
         })
+        addToast({ title: 'Éxito', description: 'Estación actualizada', variant: 'success' })
       } else {
         await createPrintStationMutation.mutateAsync(submitData)
+        addToast({ title: 'Éxito', description: 'Estación creada', variant: 'success' })
       }
       onClose()
     } catch (error) {
-      console.error('Error saving print station:', error)
+      addToast({ title: 'Error', description: 'No se pudo guardar la estación', variant: 'error' })
     }
   }
 
@@ -120,10 +124,11 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
     
     try {
       await deletePrintStationMutation.mutateAsync(printStation.id)
+      addToast({ title: 'Éxito', description: 'Estación eliminada', variant: 'success' })
       onClose()
       setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Error deleting print station:', error)
+      addToast({ title: 'Error', description: 'No se pudo eliminar la estación', variant: 'error' })
     }
   }
 

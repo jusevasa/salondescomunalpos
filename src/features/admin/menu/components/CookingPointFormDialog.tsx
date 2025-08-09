@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useCreateCookingPoint, useUpdateCookingPoint, useDeleteCookingPoint } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import type { CookingPoint, CookingPointFormData } from '../types'
 
 interface CookingPointFormDialogProps {
@@ -34,6 +35,7 @@ export default function CookingPointFormDialog({ open, onClose, cookingPoint }: 
   const createCookingPointMutation = useCreateCookingPoint()
   const updateCookingPointMutation = useUpdateCookingPoint()
   const deleteCookingPointMutation = useDeleteCookingPoint()
+  const { addToast } = useToast()
 
   // Reset form when dialog opens/closes or cooking point changes
   useEffect(() => {
@@ -83,12 +85,14 @@ export default function CookingPointFormDialog({ open, onClose, cookingPoint }: 
           id: cookingPoint.id,
           data: formData
         })
+        addToast({ title: 'Éxito', description: 'Punto de cocción actualizado', variant: 'success' })
       } else {
         await createCookingPointMutation.mutateAsync(formData)
+        addToast({ title: 'Éxito', description: 'Punto de cocción creado', variant: 'success' })
       }
       onClose()
     } catch (error) {
-      console.error('Error saving cooking point:', error)
+      addToast({ title: 'Error', description: 'No se pudo guardar el punto de cocción', variant: 'error' })
     }
   }
 
@@ -97,10 +101,11 @@ export default function CookingPointFormDialog({ open, onClose, cookingPoint }: 
     
     try {
       await deleteCookingPointMutation.mutateAsync(cookingPoint.id)
+      addToast({ title: 'Éxito', description: 'Punto de cocción eliminado', variant: 'success' })
       onClose()
       setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Error deleting cooking point:', error)
+      addToast({ title: 'Error', description: 'No se pudo eliminar el punto de cocción', variant: 'error' })
     }
   }
 

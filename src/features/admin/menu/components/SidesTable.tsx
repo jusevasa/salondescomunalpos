@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus } from 'lucide-react'
 import { useSides, useDeleteSide, useUpdateSide } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import type { SideFilters, Side } from '../types'
 import SideFormDialog from './SideFormDialog'
 
@@ -22,6 +23,7 @@ export default function SidesTable() {
   const { data: sidesData, isLoading } = useSides(filters, page, 10)
   const deleteSideMutation = useDeleteSide()
   const updateSideMutation = useUpdateSide()
+  const { addToast } = useToast()
 
   const handleSearch = (search: string) => {
     setFilters(prev => ({ ...prev, search }))
@@ -35,15 +37,29 @@ export default function SidesTable() {
 
   const handleDelete = async (id: number) => {
     if (confirm('¿Estás seguro de que quieres eliminar este acompañamiento?')) {
-      await deleteSideMutation.mutateAsync(id)
+      try {
+        await deleteSideMutation.mutateAsync(id)
+        addToast({ title: 'Éxito', description: 'Acompañamiento eliminado', variant: 'success' })
+      } catch (_) {
+        addToast({ title: 'Error', description: 'No se pudo eliminar', variant: 'error' })
+      }
     }
   }
 
   const handleToggleActive = async (id: number, currentActive: boolean) => {
-    await updateSideMutation.mutateAsync({
-      id,
-      data: { active: !currentActive }
-    })
+    try {
+      await updateSideMutation.mutateAsync({
+        id,
+        data: { active: !currentActive }
+      })
+      addToast({
+        title: 'Éxito',
+        description: `Acompañamiento ${currentActive ? 'desactivado' : 'activado'}`,
+        variant: 'success'
+      })
+    } catch (_) {
+      addToast({ title: 'Error', description: 'No se pudo cambiar el estado', variant: 'error' })
+    }
   }
 
   const handleOpenCreateForm = () => {

@@ -26,6 +26,7 @@ import {
 } from '../hooks'
 import { menuItemFormSchema, type MenuItemFormData } from '../validations'
 import type { MenuItem } from '../types'
+import { useToast } from '@/components/ui/toast'
 
 interface MenuItemFormDialogProps {
   open: boolean
@@ -43,6 +44,7 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
   const deleteMenuItemMutation = useDeleteMenuItem()
   const { data: categoriesData } = useMenuCategories({}, 1, 100)
   const { data: sidesData } = useSides({}, 1, 100)
+  const { addToast } = useToast()
 
   const form = useForm<MenuItemFormData>({
     resolver: zodResolver(menuItemFormSchema) as Resolver<MenuItemFormData>,
@@ -127,12 +129,14 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
           id: menuItem.id,
           data: submitData
         })
+        addToast({ title: 'Éxito', description: 'Ítem actualizado', variant: 'success' })
       } else {
         await createMenuItemMutation.mutateAsync(submitData)
+        addToast({ title: 'Éxito', description: 'Ítem creado', variant: 'success' })
       }
       onClose()
     } catch (error) {
-      console.error('Error saving menu item:', error)
+      addToast({ title: 'Error', description: 'No se pudo guardar el ítem', variant: 'error' })
     }
   }
 
@@ -141,10 +145,11 @@ export default function MenuItemFormDialog({ open, onClose, menuItem }: MenuItem
     
     try {
       await deleteMenuItemMutation.mutateAsync(menuItem.id)
+      addToast({ title: 'Éxito', description: 'Ítem eliminado', variant: 'success' })
       onClose()
       setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Error deleting menu item:', error)
+      addToast({ title: 'Error', description: 'No se pudo eliminar el ítem', variant: 'error' })
     }
   }
 

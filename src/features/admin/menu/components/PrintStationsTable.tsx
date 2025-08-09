@@ -39,15 +39,29 @@ export default function PrintStationsTable() {
 
   const handleDelete = async (id: number) => {
     if (confirm('¿Estás seguro de que quieres eliminar esta estación de impresión?')) {
-      await deletePrintStationMutation.mutateAsync(id)
+      try {
+        await deletePrintStationMutation.mutateAsync(id)
+        addToast({ title: 'Éxito', description: 'Estación eliminada', variant: 'success' })
+      } catch (_) {
+        addToast({ title: 'Error', description: 'No se pudo eliminar la estación', variant: 'error' })
+      }
     }
   }
 
   const handleToggleActive = async (id: number, currentActive: boolean) => {
-    await updatePrintStationMutation.mutateAsync({
-      id,
-      data: { active: !currentActive }
-    })
+    try {
+      await updatePrintStationMutation.mutateAsync({
+        id,
+        data: { active: !currentActive }
+      })
+      addToast({
+        title: 'Éxito',
+        description: `Estación ${currentActive ? 'desactivada' : 'activada'}`,
+        variant: 'success'
+      })
+    } catch (_) {
+      addToast({ title: 'Error', description: 'No se pudo cambiar el estado', variant: 'error' })
+    }
   }
 
   const handleOpenCreateForm = () => {

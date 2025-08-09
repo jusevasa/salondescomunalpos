@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useCreateSide, useUpdateSide, useDeleteSide } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import type { Side, SideFormData } from '../types'
 
 interface SideFormDialogProps {
@@ -34,6 +35,7 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
   const createSideMutation = useCreateSide()
   const updateSideMutation = useUpdateSide()
   const deleteSideMutation = useDeleteSide()
+  const { addToast } = useToast()
 
   // Reset form when dialog opens/closes or side changes
   useEffect(() => {
@@ -83,12 +85,14 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
           id: side.id,
           data: formData
         })
+        addToast({ title: 'Éxito', description: 'Acompañamiento actualizado', variant: 'success' })
       } else {
         await createSideMutation.mutateAsync(formData)
+        addToast({ title: 'Éxito', description: 'Acompañamiento creado', variant: 'success' })
       }
       onClose()
     } catch (error) {
-      console.error('Error saving side:', error)
+      addToast({ title: 'Error', description: 'No se pudo guardar el acompañamiento', variant: 'error' })
     }
   }
 
@@ -97,10 +101,11 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
     
     try {
       await deleteSideMutation.mutateAsync(side.id)
+      addToast({ title: 'Éxito', description: 'Acompañamiento eliminado', variant: 'success' })
       onClose()
       setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Error deleting side:', error)
+      addToast({ title: 'Error', description: 'No se pudo eliminar el acompañamiento', variant: 'error' })
     }
   }
 

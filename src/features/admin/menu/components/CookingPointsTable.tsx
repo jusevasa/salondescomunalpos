@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus } from 'lucide-react'
 import { useCookingPoints, useDeleteCookingPoint, useUpdateCookingPoint } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import type { CookingPointFilters, CookingPoint } from '../types'
 import CookingPointFormDialog from './CookingPointFormDialog'
 
@@ -22,6 +23,7 @@ export default function CookingPointsTable() {
   const { data: cookingPointsData, isLoading } = useCookingPoints(filters, page, 10)
   const deleteCookingPointMutation = useDeleteCookingPoint()
   const updateCookingPointMutation = useUpdateCookingPoint()
+  const { addToast } = useToast()
 
   const handleSearch = (search: string) => {
     setFilters(prev => ({ ...prev, search }))
@@ -35,15 +37,29 @@ export default function CookingPointsTable() {
 
   const handleDelete = async (id: number) => {
     if (confirm('¿Estás seguro de que quieres eliminar este punto de cocción?')) {
-      await deleteCookingPointMutation.mutateAsync(id)
+      try {
+        await deleteCookingPointMutation.mutateAsync(id)
+        addToast({ title: 'Éxito', description: 'Punto de cocción eliminado', variant: 'success' })
+      } catch (_) {
+        addToast({ title: 'Error', description: 'No se pudo eliminar', variant: 'error' })
+      }
     }
   }
 
   const handleToggleActive = async (id: number, currentActive: boolean) => {
-    await updateCookingPointMutation.mutateAsync({
-      id,
-      data: { active: !currentActive }
-    })
+    try {
+      await updateCookingPointMutation.mutateAsync({
+        id,
+        data: { active: !currentActive }
+      })
+      addToast({
+        title: 'Éxito',
+        description: `Punto de cocción ${currentActive ? 'desactivado' : 'activado'}`,
+        variant: 'success'
+      })
+    } catch (_) {
+      addToast({ title: 'Error', description: 'No se pudo cambiar el estado', variant: 'error' })
+    }
   }
 
   const handleOpenCreateForm = () => {

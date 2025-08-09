@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateMenuCategory, useUpdateMenuCategory, useDeleteMenuCategory, usePrintStations } from '../hooks'
+import { useToast } from '@/components/ui/toast'
 import type { MenuCategory, MenuCategoryFormData } from '../types'
 
 interface CategoryFormDialogProps {
@@ -38,6 +39,7 @@ export default function CategoryFormDialog({ open, onClose, category }: Category
   const updateCategoryMutation = useUpdateMenuCategory()
   const deleteCategoryMutation = useDeleteMenuCategory()
   const { data: printStationsData } = usePrintStations({}, 1, 100)
+  const { addToast } = useToast()
 
   // Reset form when dialog opens/closes or category changes
   useEffect(() => {
@@ -95,12 +97,14 @@ export default function CategoryFormDialog({ open, onClose, category }: Category
           id: category.id,
           data: formData
         })
+        addToast({ title: 'Éxito', description: 'Categoría actualizada correctamente', variant: 'success' })
       } else {
         await createCategoryMutation.mutateAsync(formData)
+        addToast({ title: 'Éxito', description: 'Categoría creada correctamente', variant: 'success' })
       }
       onClose()
     } catch (error) {
-      console.error('Error saving category:', error)
+      addToast({ title: 'Error', description: 'No se pudo guardar la categoría', variant: 'error' })
     }
   }
 
@@ -109,10 +113,11 @@ export default function CategoryFormDialog({ open, onClose, category }: Category
     
     try {
       await deleteCategoryMutation.mutateAsync(category.id)
+      addToast({ title: 'Éxito', description: 'Categoría eliminada correctamente', variant: 'success' })
       onClose()
       setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Error deleting category:', error)
+      addToast({ title: 'Error', description: 'No se pudo eliminar la categoría', variant: 'error' })
     }
   }
 
