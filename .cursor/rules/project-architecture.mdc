@@ -2,101 +2,78 @@
 alwaysApply: true
 ---
 
-# Salón de Comunal - Project Architecture
+# Salón de Comunal — Arquitectura del Proyecto
 
-## Stack
-- React 19 + TypeScript
+## Stack y herramientas
+- React 19 + TypeScript (estricto)
 - React Router v7
-- Tailwind CSS 4.0
-- shadcn/ui components
-- TanStack Query (React Query)
-- Zustand for state management
-- Zod for validation
-- React Hook Form
+- Tailwind CSS 4.0 + shadcn/ui (componentes en `src/components/ui`)
+- TanStack Query v5 para estado de servidor
+- Zustand para estado cliente y auth store
+- Zod + React Hook Form para formularios y validación
+- Supabase (Auth + DB tipada via `src/types/database.ts`)
 
-## Architecture Pattern: Screaming Architecture
+## Patrón: Screaming Architecture (por features)
 
-### Feature-Based Structure
+Estructura base por feature:
 ```
-src/features/{feature-name}/
-├── components/     # Feature-specific components
-├── hooks/         # Feature-specific hooks
-├── services/      # API calls and business logic
-├── types/         # TypeScript types
-└── index.ts       # Barrel exports
+src/features/{feature}/
+├─ components/   # UI específica del dominio
+├─ hooks/        # Hooks específicos del dominio
+├─ services/     # Acceso a datos, efectos, reglas de negocio
+├─ types/        # Tipos del dominio
+└─ index.ts      # Barrel exports
 ```
 
-### Core Infrastructure
+Infraestructura compartida:
 ```
 src/lib/
-├── api/           # HTTP client, interceptors
-├── auth/          # Authentication logic
-├── config/        # Environment variables, constants
-├── utils/         # Utility functions
-└── validations/   # Zod schemas
+├─ auth/         # store de auth y servicios supabase
+├─ config/       # env y cliente de supabase
+├─ utils/        # utilidades (incluye `cn`, formato moneda/fechas)
+└─ validations/  # esquemas Zod globales
 ```
 
-### Global Resources
+Recursos globales:
 ```
-src/hooks/         # Reusable hooks across features
-src/components/    # Shared components (ui/, layout/, common/)
-src/pages/         # Page-level components
-src/router/        # Route configuration and guards
-```
-
-## Key Principles
-1. Features are self-contained and domain-focused
-2. Shared logic goes in `/lib` or `/hooks`
-3. UI components follow shadcn/ui patterns
-4. All forms use React Hook Form + Zod
-5. Server state managed by TanStack Query
-6. Client state managed by Zustand when needed
-# Salón de Comunal - Project Architecture
-
-## Stack
-- React 19 + TypeScript
-- React Router v7
-- Tailwind CSS 4.0
-- shadcn/ui components
-- TanStack Query (React Query)
-- Zustand for state management
-- Zod for validation
-- React Hook Form
-
-## Architecture Pattern: Screaming Architecture
-
-### Feature-Based Structure
-```
-src/features/{feature-name}/
-├── components/     # Feature-specific components
-├── hooks/         # Feature-specific hooks
-├── services/      # API calls and business logic
-├── types/         # TypeScript types
-└── index.ts       # Barrel exports
+src/components/  # UI compartida (ui/, layout/, common/)
+src/hooks/       # hooks globales (p.ej. `useAuth`, `useRole`)
+src/pages/       # páginas por ruta
+src/router/      # guards y helpers de rutas
 ```
 
-### Core Infrastructure
-```
-src/lib/
-├── api/           # HTTP client, interceptors
-├── auth/          # Authentication logic
-├── config/        # Environment variables, constants
-├── utils/         # Utility functions
-└── validations/   # Zod schemas
-```
+## Principios clave
+- Cada feature es autocontenida y orientada al dominio
+- Lógica compartida va en `src/lib` o `src/hooks`
+- Formularios: React Hook Form + Zod; esquemas por feature o en `lib/validations`
+- Server state con React Query; client state con Zustand
+- Reutilizar los componentes shadcn/ui ya definidos en `src/components/ui`
 
-### Global Resources
-```
-src/hooks/         # Reusable hooks across features
-src/components/    # Shared components (ui/, layout/, common/)
-src/pages/         # Page-level components
-src/router/        # Route configuration and guards
-```
+## Alias y paths
+- Alias `@` mapea a `./src` (Vite y TS config): usar importaciones absolutas `@/...`
 
-## Key Principles
-1. Features are self-contained and domain-focused
-2. Shared logic goes in `/lib` or `/hooks`
-3. UI components follow shadcn/ui patterns
-4. All forms use React Hook Form + Zod
-5. Server state managed by TanStack Query
-6. Client state managed by Zustand when needed
+## Rutas principales y layout
+- `AdminLayout` en `src/components/layout/AdminLayout.tsx` envuelve vistas admin
+- Rutas protegidas usando `ProtectedRoute` con `allowedRoles` y `requireAuth`
+- Mapa de rutas declarativo en `src/main.tsx` (React Router v7)
+
+## Autenticación y autorización
+- Auth store con Zustand en `src/lib/auth/authStore.ts`
+- Inicialización centralizada vía `initializeAuth()`; hook `useAuth()` expone estado/acciones
+- Guard `ProtectedRoute` valida sesión, rol y perfil activo; redirige a `/login` o `/unauthorized`
+
+## Impresión (servicio externo)
+- Servicio en `src/features/shared/services/printService.ts`
+- Base URL: `VITE_PRINT_API_URL`; endpoints `/api/orders/print` y `/api/orders/invoice`
+- Validación de contrato previa al envío (`features/shared/utils/contractValidation.ts`)
+
+## Estándares de UI
+- Tailwind 4 con tokens; utilizar componentes en `src/components/ui` (button, dialog, table, sidebar, etc.)
+- Evitar reimplementar patrones de UI; extender via props/variants cuando sea posible
+
+## Nomenclatura y archivos
+- Componentes: PascalCase `.tsx`
+- Hooks: camelCase `useXxx.ts`
+- Servicios: camelCase `xxxService.ts` o `index.ts` por módulo
+- Tipos: PascalCase o camelCase según convenga
+

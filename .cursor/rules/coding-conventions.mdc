@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+---
+
+# Convenciones de código
+
+## General
+- Código autodescriptivo, funciones pequeñas y enfocadas
+- Manejo explícito de errores; early returns
+- Evitar comentarios innecesarios; preferir nombres claros
+
+## TypeScript
+- Tipado estricto; evitar `any`
+- Exportar tipos como named exports
+- Reutilizar tipos del dominio en `src/features/*/types` y `src/types/*`
+
+## React Query
+- Claves de query estables por dominio
+- Usar `select`, `enabled` y `placeholderData` cuando aporte UX
+
+## Zustand
+- Stores en `src/lib` o por feature si aplica
+- Acciones asincrónicas con estados `isLoading` y errores controlados
+
+## Imports
+- Usar importaciones absolutas con `@/`
+- Usar barrel files por feature (`index.ts`) para DX
+
+## UI
+- Reutilizar `src/components/ui/*` y variantes con `cva`
+- Nombres de props consistentes: `open`, `onOpenChange`, `onClose`
+

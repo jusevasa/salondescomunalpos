@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+# Reglas de routing
+
+## Definición de rutas
+- Declaradas en `src/main.tsx` con `createBrowserRouter`
+- Páginas:
+  - `/login`, `/unauthorized`
+  - `/waiter`, `/waiter/create-order/:tableId`, `/waiter/edit-order/:orderId`
+  - `/admin/orders`, `/admin/menu`, `/admin/tables`, `/admin/reports`, `/admin/users`
+
+## Protección de rutas
+- `ProtectedRoute` valida:
+  - Cargando: muestra spinner centrado
+  - Sin sesión: redirige a `/login` preservando `from`
+  - Sin rol: redirige a `/unauthorized`
+  - Perfil inactivo: redirige a `/account-disabled`
+
+## Layouts
+- Rutas admin envueltas en `AdminLayout` con `Sidebar`
+

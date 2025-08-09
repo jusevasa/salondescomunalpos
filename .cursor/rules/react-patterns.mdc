@@ -2,59 +2,40 @@
 alwaysApply: true
 ---
 
-# React 19 + TypeScript Patterns
+# Patrones React 19 + TypeScript
 
-## Component Structure
-- Use function components with TypeScript
-- Props interfaces named `{ComponentName}Props`
-- Export components as default, types as named exports
+## Componentes
+- Function components con TS; JSX automático
+- Props interface: `{ComponentName}Props`
+- Export default para componentes; tipos como named exports
+- Usar y extender componentes en `src/components/ui` (button, dialog, table, sidebar, etc.)
 
-## Hooks Usage
-- Prefer React Query for server state
-- Use Zustand for complex client state
-- Custom hooks in feature `/hooks` folders
-- Global hooks in `src/hooks/`
+## Hooks
+- Server state: TanStack Query v5 (staleTime 5min, retry 1 por defecto)
+- Client state: Zustand (auth y estados locales complejos)
+- Hooks globales en `src/hooks`; por feature en `src/features/*/hooks`
+- `useAuth()` inicializa `initializeAuth()` y expone `user`, `profile`, `isAuthenticated` y acciones
 
-## Form Handling
-- React Hook Form + Zod validation
-- Schemas in `src/lib/validations/`
-- Form components in feature `/components`
+## Formularios
+- React Hook Form + Zod
+- Esquemas por feature o en `src/lib/validations`
+- Integrar con `Form`, `FormField`, `FormItem`, `FormMessage` y controles UI
 
-## Styling
-- Tailwind CSS 4.0 classes
-- shadcn/ui component variants
-- Custom styles in `src/styles/`
+## Estilos
+- Tailwind 4; variantes con `class-variance-authority` donde aplique
+- No reimplementar estilos comunes; reutilizar componentes UI
 
-## File Naming
-- Components: PascalCase.tsx
-- Hooks: camelCase.ts (useFeatureName)
-- Services: camelCase.ts
-- Types: camelCase.ts or PascalCase.ts
-# React 19 + TypeScript Patterns
+## Routing y guards
+- Declaración de rutas en `src/main.tsx` (React Router v7)
+- `ProtectedRoute` aplica auth + roles (`allowedRoles`) y perfil activo
+- `AdminLayout` envuelve páginas admin
 
-## Component Structure
-- Use function components with TypeScript
-- Props interfaces named `{ComponentName}Props`
-- Export components as default, types as named exports
+## Alias y TS
+- Alias `@` → `./src` (Vite y TS paths). Importar como `@/...`
+- TS estricto, evitar `any`; early returns y manejo de errores explícito
 
-## Hooks Usage
-- Prefer React Query for server state
-- Use Zustand for complex client state
-- Custom hooks in feature `/hooks` folders
-- Global hooks in `src/hooks/`
-
-## Form Handling
-- React Hook Form + Zod validation
-- Schemas in `src/lib/validations/`
-- Form components in feature `/components`
-
-## Styling
-- Tailwind CSS 4.0 classes
-- shadcn/ui component variants
-- Custom styles in `src/styles/`
-
-## File Naming
-- Components: PascalCase.tsx
-- Hooks: camelCase.ts (useFeatureName)
-- Services: camelCase.ts
-- Types: camelCase.ts or PascalCase.ts
+## Nombres/archivos
+- Componentes: PascalCase `.tsx`
+- Hooks: camelCase `useXxx.ts`
+- Servicios: camelCase `xxxService.ts` o `index.ts`
+- Tipos: PascalCase/camelCase según semántica

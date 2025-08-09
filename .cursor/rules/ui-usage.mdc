@@ -1,0 +1,30 @@
+---
+alwaysApply: true
+---
+
+# UI y Componentes compartidos
+
+Usar los componentes de `src/components/ui` antes de crear nuevos. Puntos clave:
+
+## Form
+- `Form`, `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage`
+- Integrar con `react-hook-form` y `zod`
+
+## Inputs
+- `Input`, `Select`, `Checkbox`, `DatePicker`, `DateRangePicker`, `Popover`
+
+## Feedback/Overlay
+- `Dialog`, `AlertDialog`, `DropdownMenu`, `Tooltip`, `ToastProvider` (`useToast`)
+
+## Layout y navegación
+- `SidebarProvider` y familia `Sidebar*` (persistencia localStorage `sidebar_state`)
+- `AdminLayout` para vistas admin; usa `Sidebar` + `SidebarTrigger`
+
+## Tabla y tarjetas
+- `Table` y subcomponentes (Header, Body, Row, Cell)
+- `Card`, `CardHeader`, `CardContent`, `CardFooter`
+
+## Estándares
+- Clases Tailwind 4; util `cn` en `src/lib/utils.ts`
+- Variantes con `cva` cuando aplique
+

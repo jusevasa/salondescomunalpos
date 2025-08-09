@@ -1,0 +1,30 @@
+---
+alwaysApply: true
+---
+
+# Reglas de impresión
+
+## Servicio
+- `printService` en `src/features/shared/services/printService.ts`
+- Configuración por `VITE_PRINT_API_URL`
+- Métodos:
+  - `printOrder(PrintOrderRequest)` → `/api/orders/print`
+  - `printInvoice(PrintInvoiceRequest)` → `/api/orders/invoice`
+- Lanza `PrintServiceError` con `code` (`MISSING_CONFIG`, `HTTP_ERROR`, `NETWORK_ERROR`, `INVALID_CONTRACT`)
+
+## Validación
+- Validar contratos antes de enviar con `validateBeforeSending(type, data)`
+- Transformadores disponibles:
+  - `features/shared/utils/printTransformers.ts`
+  - `features/admin/utils/invoiceTransformers.ts`
+
+## Hooks de uso
+- `features/shared/hooks/usePrintServices.ts`:
+  - `usePrintServiceHealth`
+  - `usePrintOrder`
+  - `usePrintInvoice`
+
+## Recomendaciones
+- Manejar errores de red y contrato con mensajes claros al usuario
+- Evitar bloqueo de UI; usar loaders y deshabilitar botones durante requests
+

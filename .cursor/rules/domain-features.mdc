@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+---
+
+# Dominios principales (features)
+
+## Auth (`src/features/auth`)
+- Componentes: `LoginForm`
+- Hooks: `useAuth()` (global en `src/hooks`), `useRole()`
+- Guard: `ProtectedRoute`
+
+## Admin (`src/features/admin`)
+- Órdenes: edición, pago, impresión de factura
+- Menú: categorías, items, sides, puntos de cocción, estaciones de impresión
+- Tablas y usuarios: CRUDs con diálogos
+- Hooks: `useOrders`, `useProcessPayment`, `useTables`, `useMenu*`
+- Utilidades: `invoiceTransformers.ts`, `usePrintInvoiceFromPayment`
+
+## Waiter (`src/features/waiter`)
+- Crear/editar orden, confirmar y opcionalmente imprimir comanda
+- Componentes: `CreateOrderForm`, `EditOrderForm`, `OrdersView`, `PrintOrderButton`
+- Hooks: `useOrders`, `useOrderManagement`, `useMenuData`, `useTables`
+
+## Shared (`src/features/shared`)
+- Servicios: `printService`
+- Tipos de impresión y validación de contratos
+- Hooks de impresión: `usePrintServices`, `usePrintOrder`, `usePrintInvoice`
+

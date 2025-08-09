@@ -1,0 +1,41 @@
+---
+alwaysApply: true
+---
+
+# Runtime e Infraestructura
+
+## Alias y compilación
+- Vite con alias `@` → `./src` (ver `vite.config.ts` y `tsconfig.app.json`)
+- TypeScript estricto, `moduleResolution: bundler`, JSX `react-jsx`
+
+## Entornos (env)
+- Variables via `import.meta.env` (prefijo `VITE_`)
+- Requeridas:
+  - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (cliente)
+  - `VITE_SUPABASE_SERVICE_ROLE_KEY` (admin opcional)
+  - `VITE_PRINT_API_URL` para impresión
+- Validadores en `src/lib/config/env.ts`: `validateEnv`, `validateAdminEnv`, `validatePrintEnv`
+
+## Supabase
+- Cliente en `src/lib/config/supabase.ts`
+- Tipado con `src/types/database.ts`
+- Admin client lazy (requiere service role), devolver `null` si no configurado
+
+## Autenticación
+- Store Zustand en `src/lib/auth/authStore.ts`
+- Inicialización única con `initializeAuth()` y listener `onAuthStateChange`
+- Hook `useAuth()` para exponer estado/acciones
+- Guard `ProtectedRoute` (redirige a `/login`, `/unauthorized` y valida `profile.active`)
+
+## React Query
+- Proveedor en `src/main.tsx` con `QueryClient`
+- Opciones por defecto: `staleTime: 5min`, `retry: 1`
+
+## Impresión
+- Servicio: `src/features/shared/services/printService.ts`
+- Base URL: `VITE_PRINT_API_URL`
+- Endpoints:
+  - POST `/api/orders/print` (comandas)
+  - POST `/api/orders/invoice` (facturas)
+- Validación de contratos antes del envío en `features/shared/utils/contractValidation.ts`
+
