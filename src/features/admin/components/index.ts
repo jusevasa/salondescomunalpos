@@ -1,6 +1,7 @@
 export { default as OrdersTable } from './OrdersTable'
 export { default as PaymentDialog } from './PaymentDialog'
 export { default as OrderEditDialog } from './OrderEditDialog'
+export { default as OrderViewDialog } from './OrderViewDialog'
 export { TablesTable } from './TablesTable'
 export { TableFormDialog } from './TableFormDialog'
 export { default as ReportsTable } from './ReportsTable'

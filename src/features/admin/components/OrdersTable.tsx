@@ -17,10 +17,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
-import { CreditCard, Edit3 } from 'lucide-react'
+import { CreditCard, Edit3, Eye } from 'lucide-react'
 import { useRole } from '@/hooks/useRole'
 import PaymentDialog from './PaymentDialog'
 import OrderEditDialog from './OrderEditDialog'
+import OrderViewDialog from './OrderViewDialog'
 import type { Order } from '../types'
 
 const deriveAvatarFallback = (value: unknown): string => {
@@ -41,8 +42,10 @@ interface OrdersTableProps {
 export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null)
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null)
+  const [selectedOrderForView, setSelectedOrderForView] = useState<Order | null>(null)
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const { isAdmin } = useRole()
 
   const handlePayOrder = (order: Order) => {
@@ -53,6 +56,11 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
   const handleEditOrder = (order: Order) => {
     setSelectedOrderForEdit(order)
     setEditDialogOpen(true)
+  }
+
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrderForView(order)
+    setViewDialogOpen(true)
   }
 
   const columnHelper = createColumnHelper<Order>()
@@ -133,11 +141,18 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
         const isPaid = order.payment_status === 'paid'
         const isCancelled = order.status === 'cancelled'
         
-        // No mostrar acciones para órdenes canceladas
         if (isCancelled || isPaid) {
           return (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Sin acciones</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewOrder(order)}
+                className="h-8 w-8 p-0"
+                title="Ver detalle"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
             </div>
           )
         }
@@ -238,8 +253,15 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {isCancelled ? (
-                      <span className="text-xs text-muted-foreground">Sin acciones</span>
+                    {isCancelled || isPaid ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewOrder(order)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver
+                      </Button>
                     ) : (
                       <>
                         {!isPaid && (
@@ -337,6 +359,13 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
         order={selectedOrderForEdit}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+      />
+
+      {/* Order View Dialog */}
+      <OrderViewDialog
+        order={selectedOrderForView}
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
       />
     </>
   )
