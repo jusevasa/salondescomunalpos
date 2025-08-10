@@ -167,7 +167,7 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Estación de Impresión' : 'Nueva Estación de Impresión'}
@@ -180,7 +180,7 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-4 overflow-y-auto px-1">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre de la Estación</Label>
             <Input
@@ -256,7 +256,7 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
             <Label htmlFor="active">Estación activa</Label>
           </div>
 
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between border-t pt-4 mt-2">
             <div>
               {isEditing && (
                 <Button
@@ -278,7 +278,7 @@ export default function PrintStationFormDialog({ open, onClose, printStation }: 
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="sm:min-w-[120px]">
                 {isLoading 
                   ? (isEditing ? 'Actualizando...' : 'Creando...') 
                   : (isEditing ? 'Actualizar' : 'Crear')

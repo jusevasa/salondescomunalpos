@@ -17,7 +17,7 @@ export default function AdminMenuPage() {
   }, [params.tab, navigate])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <MenuAdminDashboard initialTab={currentTab} />
     </div>
   )

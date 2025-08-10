@@ -37,7 +37,7 @@ export default function ReportsTable() {
           <EyeIcon className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-[720px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalle de Orden #{order.id}</DialogTitle>
         </DialogHeader>
@@ -227,7 +227,7 @@ export default function ReportsTable() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
             <DateRangePicker
               dateFrom={dateFrom}
               dateTo={dateTo}
@@ -235,17 +235,17 @@ export default function ReportsTable() {
               onSelectTo={handleDateToChange}
               placeholderFrom="Fecha desde"
               placeholderTo="Fecha hasta"
-              className="flex-1"
+              className="w-full sm:flex-1"
               disableFuture
             />
             <Button
               variant="outline"
               onClick={resetToToday}
-              className="whitespace-nowrap"
+              className="w-full sm:w-auto"
             >
               Hoy
             </Button>
-            <Button onClick={handleExport} className="whitespace-nowrap">
+            <Button onClick={handleExport} className="w-full sm:w-auto">
               Descargar Excel
             </Button>
           </div>

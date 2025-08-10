@@ -74,7 +74,7 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
@@ -84,21 +84,21 @@ export default function AdminOrdersPage() {
             Gestiona las órdenes activas, pagadas y canceladas
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
           <DatePicker
             date={selectedDate}
             onSelect={(d) => d && setSelectedDate(d)}
             placeholder="Seleccionar fecha"
             disableFuture
-            className="w-64"
+            className="w-full sm:w-64"
           />
-          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())} className="w-full sm:w-auto">
             Hoy
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -177,10 +177,10 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold">Órdenes</h2>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant={activeTab === 'active' ? 'default' : 'outline'}
                 size="sm"
@@ -220,7 +220,7 @@ export default function AdminOrdersPage() {
               </Button>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <Badge variant="outline">{currentOrders.length} órdenes</Badge>
             {isLoading && (
               <Badge variant="secondary">Actualizando...</Badge>

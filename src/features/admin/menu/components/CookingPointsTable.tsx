@@ -121,8 +121,42 @@ export default function CookingPointsTable() {
           </Select>
         </div>
 
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-3">
+          {cookingPointsData?.cooking_points.map((cookingPoint) => (
+            <div key={cookingPoint.id} className="p-4 border rounded-lg bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{cookingPoint.name}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant={cookingPoint.active ? 'default' : 'secondary'}>
+                      {cookingPoint.active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                    <Badge variant="outline">Orden: {cookingPoint.display_order}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {new Date(cookingPoint.created_at).toLocaleDateString('es-CO')}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={() => handleOpenEditForm(cookingPoint)} className="h-9">Editar</Button>
+                  <Button
+                    variant={cookingPoint.active ? 'secondary' : 'default'}
+                    size="sm"
+                    onClick={() => handleToggleActive(cookingPoint.id, cookingPoint.active)}
+                    className="h-9"
+                  >
+                    {cookingPoint.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(cookingPoint.id)} className="h-9">Eliminar</Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Tabla */}
-        <div className="border rounded-lg">
+        <div className="hidden lg:block border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

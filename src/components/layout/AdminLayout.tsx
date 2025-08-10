@@ -200,14 +200,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         <main className="flex-1 flex flex-col">
           <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-14 items-center px-4 lg:px-6">
-              <SidebarTrigger className="mr-4" />
+            <div className="flex h-14 items-center px-3 sm:px-4 lg:px-6">
+              <SidebarTrigger className="mr-2 sm:mr-4" />
               <div className="flex-1" />
             </div>
           </header>
           
           <div className="flex-1 overflow-auto">
-            {children}
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
+              {children}
+            </div>
           </div>
         </main>
       </div>

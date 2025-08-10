@@ -160,8 +160,50 @@ export default function PrintStationsTable() {
           </Select>
         </div>
 
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-3">
+          {printStationsData?.print_stations.map((station) => (
+            <div key={station.id} className="p-4 border rounded-lg bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{station.name}</div>
+                  <div className="text-sm text-muted-foreground">Código: {station.code}</div>
+                  <div className="text-sm text-muted-foreground truncate">IP: {station.printer_ip || 'No configurada'}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant={station.active ? 'default' : 'secondary'}>
+                      {station.active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                    <Badge variant="outline">Orden: {station.display_order}</Badge>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTestConnection(station)}
+                    disabled={!station.printer_ip || testingPrinter === station.id}
+                    className="h-9"
+                  >
+                    {testingPrinter === station.id ? 'Probando...' : 'Probar'}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleOpenEditForm(station)} className="h-9">Editar</Button>
+                  <Button
+                    variant={station.active ? 'secondary' : 'default'}
+                    size="sm"
+                    onClick={() => handleToggleActive(station.id, station.active)}
+                    className="h-9"
+                  >
+                    {station.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(station.id)} className="h-9">Eliminar</Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Tabla */}
-        <div className="border rounded-lg">
+        <div className="hidden lg:block border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

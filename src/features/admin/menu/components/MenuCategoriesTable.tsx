@@ -176,8 +176,47 @@ export default function MenuCategoriesTable() {
             </div>
           )}
 
+          {/* Mobile Cards */}
+          <div className="lg:hidden space-y-3">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando categorías...</div>
+            ) : categoriesData?.categories.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No se encontraron categorías</div>
+            ) : (
+              categoriesData?.categories.map((category: MenuCategory) => (
+                <div key={category.id} className="p-4 border rounded-lg bg-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{category.name}</div>
+                      <div className="text-sm text-muted-foreground truncate">{category.description || '-'}</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge variant={category.active ? 'default' : 'secondary'}>
+                          {category.active ? 'Activa' : 'Inactiva'}
+                        </Badge>
+                        <Badge variant="outline">{category.menu_items?.length || 0} items</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">{formatDate(category.created_at)}</div>
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(category.id)} className="h-9">Editar</Button>
+                      <Button
+                        variant={category.active ? 'secondary' : 'default'}
+                        size="sm"
+                        onClick={() => handleToggleActive(category.id, category.active)}
+                        className="h-9"
+                      >
+                        {category.active ? 'Desactivar' : 'Activar'}
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(category.id)} className="h-9">Eliminar</Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
           {/* Table */}
-          <div className="border rounded-lg">
+          <div className="hidden lg:block border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

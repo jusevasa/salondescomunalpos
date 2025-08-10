@@ -144,7 +144,7 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Acompañamiento' : 'Nuevo Acompañamiento'}
@@ -157,7 +157,7 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 space-y-4 overflow-y-auto px-1">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre del Acompañamiento</Label>
             <Input
@@ -202,7 +202,7 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
             <Label htmlFor="active">Acompañamiento activo</Label>
           </div>
 
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between border-t pt-4 mt-2">
             <div>
               {isEditing && (
                 <Button
@@ -224,7 +224,7 @@ export default function SideFormDialog({ open, onClose, side }: SideFormDialogPr
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="sm:min-w-[120px]">
                 {isLoading 
                   ? (isEditing ? 'Actualizando...' : 'Creando...') 
                   : (isEditing ? 'Actualizar' : 'Crear')

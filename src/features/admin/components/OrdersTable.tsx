@@ -235,7 +235,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">${order.total_amount.toLocaleString()}</p>
+                    <p className="font-semibold whitespace-nowrap">${order.total_amount.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString('es-CO', {
                         hour: '2-digit',
@@ -246,7 +246,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Badge variant={getPaymentStatusVariant(order.payment_status)}>
                       {order.payment_status}
                     </Badge>
@@ -258,6 +258,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => handleViewOrder(order)}
+                        className="whitespace-nowrap"
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         Ver
@@ -269,6 +270,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                             variant="outline"
                             size="sm"
                             onClick={() => handlePayOrder(order)}
+                            className="whitespace-nowrap"
                           >
                             <CreditCard className="h-4 w-4 mr-1" />
                             Pagar
@@ -279,6 +281,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditOrder(order)}
+                            className="whitespace-nowrap"
                           >
                             <Edit3 className="h-4 w-4 mr-1" />
                             Editar
@@ -296,7 +299,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
 
       {/* Desktop Table View */}
       <div className="hidden lg:block">
-        <Card>
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (

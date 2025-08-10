@@ -121,8 +121,42 @@ export default function SidesTable() {
           </Select>
         </div>
 
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-3">
+          {sidesData?.sides.map((side) => (
+            <div key={side.id} className="p-4 border rounded-lg bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{side.name}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant={side.active ? 'default' : 'secondary'}>
+                      {side.active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                    <Badge variant="outline">Orden: {side.display_order}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {new Date(side.created_at).toLocaleDateString('es-CO')}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={() => handleOpenEditForm(side)} className="h-9">Editar</Button>
+                  <Button
+                    variant={side.active ? 'secondary' : 'default'}
+                    size="sm"
+                    onClick={() => handleToggleActive(side.id, side.active)}
+                    className="h-9"
+                  >
+                    {side.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(side.id)} className="h-9">Eliminar</Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Tabla */}
-        <div className="border rounded-lg">
+        <div className="hidden lg:block border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

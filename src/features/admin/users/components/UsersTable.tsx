@@ -99,8 +99,8 @@ export function UsersTable() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Buscar por nombre o email..."
@@ -111,7 +111,7 @@ export function UsersTable() {
         </div>
         
         <Select value={filters.role || 'all'} onValueChange={handleRoleFilterChange}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue placeholder="Rol" />
           </SelectTrigger>
           <SelectContent>
@@ -125,7 +125,7 @@ export function UsersTable() {
           value={filters.active === undefined ? 'all' : filters.active ? 'active' : 'inactive'} 
           onValueChange={handleStatusFilterChange}
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -136,8 +136,54 @@ export function UsersTable() {
         </Select>
       </div>
 
+      {/* Mobile Cards */}
+      <div className="lg:hidden space-y-3">
+        {isLoading ? (
+          <div className="text-center py-8 text-muted-foreground">Cargando usuarios...</div>
+        ) : usersResponse?.users.length ? (
+          usersResponse.users.map((user) => (
+            <div key={user.id} className="p-4 border rounded-lg bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{user.name}</div>
+                  <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role === 'admin' ? 'Administrador' : 'Mesero'}
+                    </Badge>
+                    <Badge variant={user.active ? 'default' : 'secondary'}>
+                      {user.active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {new Date(user.created_at).toLocaleDateString('es-ES')}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={() => handleEditUser(user)} className="h-9">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant={user.active ? 'secondary' : 'default'}
+                    size="sm"
+                    onClick={() => handleToggleStatus(user)}
+                    disabled={toggleUserStatusMutation.isPending}
+                    className="h-9"
+                  >
+                    {user.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">No se encontraron usuarios</div>
+        )}
+      </div>
+
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="hidden lg:block overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -183,7 +229,7 @@ export function UsersTable() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Abrir menú de acciones de usuario">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
