@@ -134,7 +134,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
         const isCancelled = order.status === 'cancelled'
         
         // No mostrar acciones para órdenes canceladas
-        if (isCancelled) {
+        if (isCancelled || isPaid) {
           return (
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Sin acciones</span>
