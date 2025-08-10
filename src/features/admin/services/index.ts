@@ -25,18 +25,13 @@ import type {
 export const ordersService = {
   async getTodayOrders(filters?: OrderFilters): Promise<OrdersResponse> {
     try {
-
       const today = new Date();
-      const startOfToday = startOfDay(today);
-      const endOfToday = endOfDay(today);
-
-      const todayStart = format(startOfToday, 'yyyy-MM-dd HH:mm:ss', {
-        locale: es,
-      });
-
-      const todayEnd = format(endOfToday, 'yyyy-MM-dd HH:mm:ss', {
-        locale: es,
-      });
+      const startDate = filters?.date_range?.from
+        ? format(startOfDay(filters.date_range.from), 'yyyy-MM-dd HH:mm:ss', { locale: es })
+        : format(startOfDay(today), 'yyyy-MM-dd HH:mm:ss', { locale: es })
+      const endDate = filters?.date_range?.to
+        ? format(endOfDay(filters.date_range.to), 'yyyy-MM-dd HH:mm:ss', { locale: es })
+        : format(endOfDay(today), 'yyyy-MM-dd HH:mm:ss', { locale: es })
 
       let query = supabase
         .from('orders')
@@ -68,8 +63,8 @@ export const ordersService = {
             subtotal
           )
         `)
-        .gte('created_at', todayStart)
-        .lte('created_at', todayEnd)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
         .order('created_at', { ascending: false })
 
       if (filters?.status) {

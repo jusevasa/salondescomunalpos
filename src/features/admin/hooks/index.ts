@@ -4,13 +4,17 @@ import { ordersService, paymentService, tablesService, reportsService } from '..
 import type { OrderFilters, ProcessPaymentRequest, OrderItemToAdd, TableFilters, TableFormData, ReportsFilters } from '../types'
 
 export const useOrders = (filters?: OrderFilters) => {
+  const dateKey = filters?.date_range
+    ? `${filters.date_range.from.toDateString()}_${filters.date_range.to.toDateString()}`
+    : 'today'
   return useQuery({
-    queryKey: ['orders', 'today', filters],
+    queryKey: ['orders', dateKey, filters?.status, filters?.payment_status, filters?.table_number],
     queryFn: () => ordersService.getTodayOrders(filters),
     refetchInterval: 30000,
     staleTime: 10000,
     retry: 2,
     retryDelay: 1000,
+    enabled: true,
   })
 }
 

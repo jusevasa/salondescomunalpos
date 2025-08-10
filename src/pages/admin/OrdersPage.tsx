@@ -1,15 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { OrdersTable, useOrders, useOrdersSubscription } from '@/features/admin'
 import { formatCurrency } from '@/lib/utils'
 import type { OrderFilters } from '@/features/admin'
+import { DatePicker } from '@/components/ui/date-picker'
+import { endOfDay, startOfDay } from 'date-fns'
 
 type OrderViewType = 'active' | 'paid' | 'cancelled'
 
 export default function AdminOrdersPage() {
-  const [filters] = useState<OrderFilters>({})
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const filters: OrderFilters = useMemo(() => ({
+    date_range: { from: startOfDay(selectedDate), to: endOfDay(selectedDate) },
+  }), [selectedDate])
   const [activeTab, setActiveTab] = useState<OrderViewType>('active')
   const { data: ordersData, isLoading, error } = useOrders(filters)
 
@@ -73,11 +78,23 @@ export default function AdminOrdersPage() {
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Órdenes del Día
+            Órdenes por Día
           </h1>
           <p className="text-muted-foreground">
             Gestiona las órdenes activas, pagadas y canceladas
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <DatePicker
+            date={selectedDate}
+            onSelect={(d) => d && setSelectedDate(d)}
+            placeholder="Seleccionar fecha"
+            disableFuture
+            className="w-64"
+          />
+          <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
+            Hoy
+          </Button>
         </div>
       </div>
 
@@ -90,9 +107,7 @@ export default function AdminOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{allOrders.length}</div>
-            <p className="text-xs text-muted-foreground">
-              órdenes registradas hoy
-            </p>
+             <p className="text-xs text-muted-foreground">para la fecha seleccionada</p>
           </CardContent>
         </Card>
 
