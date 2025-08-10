@@ -204,9 +204,9 @@ const MenuItemsTable: React.FC<MenuItemsTableProps> = ({ className }) => {
     onDelete: (item: MenuItem) => void;
   }) => (
     <Card className="p-4 space-y-3">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h3 className="font-medium text-base">{item.name}</h3>
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-base truncate" title={item.name}>{item.name}</h3>
           <p className="text-lg font-semibold text-primary mt-1">
             {formatPrice(item.price || 0)}
           </p>
@@ -253,7 +253,9 @@ const MenuItemsTable: React.FC<MenuItemsTableProps> = ({ className }) => {
       
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">
-          {item.menu_categories?.name || 'Sin categoría'}
+          <span className="truncate max-w-[200px]" title={item.menu_categories?.name || 'Sin categoría'}>
+            {item.menu_categories?.name || 'Sin categoría'}
+          </span>
         </Badge>
         <Badge variant={item.active ? 'default' : 'secondary'}>
           {item.active ? 'Activo' : 'Inactivo'}
@@ -452,17 +454,18 @@ const MenuItemsTable: React.FC<MenuItemsTableProps> = ({ className }) => {
             {/* Filters */}
             <div className="flex flex-col gap-4 mb-6">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                <div className="relative flex-1">
+                <div className="relative w-full">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar ítems..."
                     value={globalFilter}
                     onChange={(e) => setGlobalFilter(e.target.value)}
                     className="pl-8"
+                    autoFocus
                   />
                 </div>
                 {!isMobile && (
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="whitespace-nowrap">
                     <Filter className="mr-2 h-4 w-4" />
                     Filtros
                   </Button>
@@ -541,7 +544,7 @@ const MenuItemsTable: React.FC<MenuItemsTableProps> = ({ className }) => {
               </div>
             ) : (
               // Desktop Table View
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -567,7 +570,7 @@ const MenuItemsTable: React.FC<MenuItemsTableProps> = ({ className }) => {
                           data-state={row.getIsSelected() && "selected"}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id}>
+                            <TableCell key={cell.id} className="whitespace-nowrap">
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </TableCell>
                           ))}
