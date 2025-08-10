@@ -23,6 +23,16 @@ import PaymentDialog from './PaymentDialog'
 import OrderEditDialog from './OrderEditDialog'
 import type { Order } from '../types'
 
+const deriveAvatarFallback = (value: unknown): string => {
+  if (value === null || value === undefined) return 'N/A'
+  const raw = String(value).trim()
+  if (raw.length === 0) return 'N/A'
+  const isNumeric = /^[0-9]+$/.test(raw)
+  if (isNumeric) return raw
+  const letterMatch = raw.match(/\p{L}/u)
+  return letterMatch ? letterMatch[0].toUpperCase() : 'N/A'
+}
+
 interface OrdersTableProps {
   orders: Order[]
   isLoading?: boolean
@@ -74,7 +84,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
         <div className="flex items-center space-x-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="text-xs font-medium">
-              {info.getValue()}
+              {deriveAvatarFallback(info.row.original.tables?.number ?? info.getValue())}
             </AvatarFallback>
           </Avatar>
           <span className="font-medium lg:hidden">{info.getValue()}</span>
@@ -199,11 +209,11 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="font-medium">
-                        {order.table_number}
+                        {deriveAvatarFallback(order.tables?.number ?? order.table_number)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">Mesa {order.table_number}</p>
+                      <p className="font-medium">Mesa {order.tables?.number ?? order.table_number}</p>
                       <p className="text-sm text-muted-foreground">
                         {order.waiter || 'Sin nombre'}
                       </p>
@@ -222,9 +232,6 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                 
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
-                    <Badge variant={getStatusVariant(order.status)}>
-                      {order.status}
-                    </Badge>
                     <Badge variant={getPaymentStatusVariant(order.payment_status)}>
                       {order.payment_status}
                     </Badge>
@@ -245,8 +252,7 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                             Pagar
                           </Button>
                         )}
-                        
-                        {isAdmin() && (
+                        {isAdmin() && !isPaid && (
                           <Button
                             variant="outline"
                             size="sm"
