@@ -110,6 +110,7 @@ export interface PrintInvoiceRequest {
   grand_total: number
   payment: PaymentInfo
   restaurant_info: RestaurantInfo
+  print_station?: string
 }
 
 export interface PrintInvoiceResponse {

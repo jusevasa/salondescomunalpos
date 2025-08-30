@@ -457,3 +457,24 @@ export const usePrintStationsForSelect = () => {
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 }
+
+export const usePrintStationsForInvoice = () => {
+  return useQuery({
+    queryKey: [...menuQueryKeys.printStations(), 'invoice'],
+    queryFn: () => printStationsService.getPrintStations({ active: true }, 1, 1000),
+    select: (data) => {
+      const stations = data.print_stations
+      const cajaStation = stations.find(station => station.code === 'CAJA')
+      return {
+        stations: stations.map(station => ({
+          id: station.id,
+          name: station.name,
+          code: station.code,
+          printer_ip: station.printer_ip
+        })),
+        defaultStation: cajaStation || stations[0] || null
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  })
+}

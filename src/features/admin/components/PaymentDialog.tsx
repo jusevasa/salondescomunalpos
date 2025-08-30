@@ -32,10 +32,12 @@ import { Separator } from '@/components/ui/separator'
 import { Calculator, CreditCard, DollarSign, Receipt, Printer } from 'lucide-react'
 import { roundCOP } from '@/lib/utils'
 import { usePaymentMethods, useProcessPayment, useInvoiceData, usePrintInvoiceFromPayment } from '../hooks'
+import { usePrintStationsForInvoice } from '../menu/hooks'
 import { paymentSchema, cashPaymentSchema } from '@/lib/validations/payment'
 import type { PaymentFormData, CashPaymentFormData } from '@/lib/validations/payment'
 import type { Order } from '../types'
 import { useTableStatus } from '@/features/waiter/hooks/useTableStatus'
+import { deriveAvatarFallback } from '../utils/defaultValues'
 
 interface PaymentDialogProps {
   order: Order | null
@@ -45,44 +47,46 @@ interface PaymentDialogProps {
 
 export default function PaymentDialog({ order, open, onOpenChange }: PaymentDialogProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('')
+  const [selectedPrintStation, setSelectedPrintStation] = useState<string>('')
   const [tipMode, setTipMode] = useState<'percentage' | 'amount'>('percentage')
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [pendingPaymentData, setPendingPaymentData] = useState<PaymentFormData | CashPaymentFormData | null>(null)
-  
+
   const { data: paymentMethods = [], isLoading: loadingMethods } = usePaymentMethods()
+  const { data: printStationsData, isLoading: loadingPrintStations } = usePrintStationsForInvoice()
   const processPayment = useProcessPayment()
   const { saveInvoiceData, clearInvoiceData } = useInvoiceData()
   const { printInvoice, isPrinting: isPrintingInvoice } = usePrintInvoiceFromPayment()
   const { freeTable } = useTableStatus();
-  
+
   const isCashPayment = paymentMethods.find(pm => pm.id === parseInt(selectedPaymentMethod))?.code === 'CASH'
   const schema = isCashPayment ? cashPaymentSchema : paymentSchema
-  
+
   const form = useForm<PaymentFormData | CashPaymentFormData>({
     resolver: zodResolver(schema),
     mode: 'onChange'
   })
 
   const watchedValues = form.watch()
-  
+
   // Función para calcular subtotal basado en base_price
   const calculateBasePriceSubtotal = () => {
     if (!order?.order_items || order.order_items.length === 0) return order?.subtotal || 0
-    
+
     return order.order_items.reduce((sum, item) => {
       const menuItem = item.menu_items
       const unitPrice = menuItem?.base_price || item.unit_price
       return sum + (unitPrice * item.quantity)
     }, 0)
   }
-  
+
   // Calculate totals
   const orderAmount = order?.total_amount || 0
   const subtotalAmount = calculateBasePriceSubtotal() // Usar subtotal basado en base_price
   const tipPercentage = watchedValues.tipPercentage || 0
   const tipAmount = watchedValues.tipAmount || 0
   const receivedAmount = watchedValues.receivedAmount || 0
-  
+
   const calculatedTipAmount = tipMode === 'percentage' ? roundCOP((subtotalAmount * tipPercentage) / 100) : roundCOP(tipAmount)
   const totalToPay = roundCOP(orderAmount + calculatedTipAmount)
   const changeAmount = roundCOP(Math.max(0, receivedAmount - totalToPay))
@@ -105,6 +109,13 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
     }
   }, [open, order, form, clearInvoiceData])
 
+  // Establecer estación de impresión por defecto cuando se cargan los datos
+  useEffect(() => {
+    if (printStationsData?.defaultStation?.printer_ip && !selectedPrintStation) {
+      setSelectedPrintStation(printStationsData.defaultStation.printer_ip)
+    }
+  }, [printStationsData, selectedPrintStation])
+
   const onSubmit = async (data: PaymentFormData | CashPaymentFormData) => {
     if (!order) return
 
@@ -118,7 +129,7 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
 
     try {
       const finalTipAmount = tipMode === 'percentage' ? calculatedTipAmount : pendingPaymentData.tipAmount
-      
+
       await processPayment.mutateAsync({
         orderId: parseInt(order.id),
         paymentMethodId: parseInt(selectedPaymentMethod),
@@ -140,7 +151,7 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
   }
 
   const handlePrintInvoice = async () => {
-    if (!order || !selectedPaymentMethod) return
+    if (!order || !selectedPaymentMethod || !selectedPrintStation) return
 
     const selectedMethod = paymentMethods.find(pm => pm.id === parseInt(selectedPaymentMethod))
     if (!selectedMethod) return
@@ -168,7 +179,8 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
         tipPercentage: tipMode === 'percentage' ? tipPercentage : undefined,
         receivedAmount,
         changeAmount,
-        notes: form.getValues('notes')
+        notes: form.getValues('notes'),
+        print_station: selectedPrintStation
       })
 
       console.log('✅ Factura impresa y datos guardados en localStorage')
@@ -179,8 +191,8 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
 
   const handleTipModeChange = (mode: 'percentage' | 'amount') => {
     setTipMode(mode)
-      form.setValue('tipPercentage', undefined)
-      form.setValue('tipAmount', undefined)
+    form.setValue('tipPercentage', undefined)
+    form.setValue('tipAmount', undefined)
   }
 
   const handleQuickTip = (percentage: number) => {
@@ -191,13 +203,15 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
 
   if (!order) return null
 
+  const orderTableFallBack = deriveAvatarFallback(order.table_number || order.tables?.number)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Procesar Pago - Mesa {order.table_number}
+            Procesar Pago - Mesa {orderTableFallBack}
           </DialogTitle>
           <DialogDescription>
             Complete los detalles del pago para finalizar la orden
@@ -208,131 +222,199 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto px-6 pb-4">
               <div className="space-y-6">
-              {/* Order Summary */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>${order.subtotal.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Impuestos:</span>
-                  <span>${order.tax_amount.toLocaleString()}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-medium">
-                  <span>Total Orden:</span>
-                  <span>${orderAmount.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <FormField
-                control={form.control}
-                name="paymentMethodId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Método de Pago</FormLabel>
-                    <Select
-                      value={selectedPaymentMethod}
-                      onValueChange={(value) => {
-                        setSelectedPaymentMethod(value)
-                        field.onChange(parseInt(value))
-                      }}
-                      disabled={loadingMethods}
-                    >
-                      <FormControl>
-                        <SelectTrigger className='w-full'>
-                          <SelectValue placeholder="Seleccionar método de pago" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {paymentMethods.map((method) => (
-                          <SelectItem key={method.id} value={method.id.toString()}>
-                            {method.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Tip Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Propina</Label>
-                  <div className="flex gap-1">
-                    <Button
-                      type="button"
-                      variant={tipMode === 'percentage' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleTipModeChange('percentage')}
-                    >
-                      %
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={tipMode === 'amount' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleTipModeChange('amount')}
-                    >
-                      $
-                    </Button>
+                {/* Order Summary */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span>${order.subtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Impuestos:</span>
+                    <span>${order.tax_amount.toLocaleString()}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-medium">
+                    <span>Total Orden:</span>
+                    <span>${orderAmount.toLocaleString()}</span>
                   </div>
                 </div>
 
-                {/* Quick tip buttons */}
-                <div className="grid grid-cols-4 gap-2">
-                  {quickTipPercentages.map((percentage) => (
-                    <Button
-                      key={percentage}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickTip(percentage)}
-                      className="flex-1"
-                    >
-                      {percentage}%
-                    </Button>
-                  ))}
+                {/* Payment Method */}
+                <FormField
+                  control={form.control}
+                  name="paymentMethodId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Método de Pago</FormLabel>
+                      <Select
+                        value={selectedPaymentMethod}
+                        onValueChange={(value) => {
+                          setSelectedPaymentMethod(value)
+                          field.onChange(parseInt(value))
+                        }}
+                        disabled={loadingMethods}
+                      >
+                        <FormControl>
+                          <SelectTrigger className='w-full'>
+                            <SelectValue placeholder="Seleccionar método de pago" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {paymentMethods.map((method) => (
+                            <SelectItem key={method.id} value={method.id.toString()}>
+                              {method.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Print Station Selection */}
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Printer className="h-4 w-4" />
+                    Estación de Impresión
+                  </FormLabel>
+                  <Select
+                    value={selectedPrintStation}
+                    onValueChange={setSelectedPrintStation}
+                    disabled={loadingPrintStations}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder="Seleccionar estación de impresión" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {printStationsData?.stations
+                        .filter(station => station.printer_ip)
+                        .map((station) => (
+                          <SelectItem key={station.id} value={station.printer_ip!}>
+                            {station.name} ({station.code})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+
+                {/* Tip Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Propina</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant={tipMode === 'percentage' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleTipModeChange('percentage')}
+                      >
+                        %
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={tipMode === 'amount' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleTipModeChange('amount')}
+                      >
+                        $
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Quick tip buttons */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {quickTipPercentages.map((percentage) => (
+                      <Button
+                        key={percentage}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickTip(percentage)}
+                        className="flex-1"
+                      >
+                        {percentage}%
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Tip input */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {tipMode === 'percentage' ? (
+                      <FormField
+                        control={form.control}
+                        name="tipPercentage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Porcentaje (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="1"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="tipAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Monto ($)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="100"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Monto Propina</Label>
+                      <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        <span className="font-medium">{calculatedTipAmount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Tip input */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {tipMode === 'percentage' ? (
+                {/* Cash payment specific fields */}
+                {isCashPayment && (
+                  <div className="space-y-4 p-3 sm:p-4 bg-yellow-50 rounded-lg border">
+                    <div className="flex items-center gap-2 text-yellow-800">
+                      <Calculator className="h-4 w-4" />
+                      <span className="font-medium">Pago en Efectivo</span>
+                    </div>
+
                     <FormField
                       control={form.control}
-                      name="tipPercentage"
+                      name="receivedAmount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Porcentaje (%)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="1"
-                              {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="tipAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Monto ($)</FormLabel>
+                          <FormLabel>Monto Recibido ($)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               min="0"
                               step="100"
+                              placeholder="Ingrese el monto recibido"
                               {...field}
                               onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
                             />
@@ -341,114 +423,74 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
                         </FormItem>
                       )}
                     />
-                  )}
-                  
-                  <div className="space-y-2">
-                    <Label>Monto Propina</Label>
-                    <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
-                      <DollarSign className="h-4 w-4 mr-1" />
-                      <span className="font-medium">{calculatedTipAmount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Cash payment specific fields */}
-              {isCashPayment && (
-                <div className="space-y-4 p-3 sm:p-4 bg-yellow-50 rounded-lg border">
-                  <div className="flex items-center gap-2 text-yellow-800">
-                    <Calculator className="h-4 w-4" />
-                    <span className="font-medium">Pago en Efectivo</span>
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="receivedAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monto Recibido ($)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="100"
-                            placeholder="Ingrese el monto recibido"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    {receivedAmount > 0 && (
+                      <div className="space-y-2 p-3 bg-white rounded border">
+                        <div className="flex justify-between text-sm">
+                          <span>Total a Pagar:</span>
+                          <span className="font-medium">${totalToPay.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Recibido:</span>
+                          <span>${receivedAmount.toLocaleString()}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between font-bold">
+                          <span>Vueltas:</span>
+                          <span className={changeAmount >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            ${changeAmount.toLocaleString()}
+                          </span>
+                        </div>
+                        {changeAmount < 0 && (
+                          <p className="text-sm text-red-600">
+                            Falta: ${Math.abs(changeAmount).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
                     )}
-                  />
-
-                  {receivedAmount > 0 && (
-                    <div className="space-y-2 p-3 bg-white rounded border">
-                      <div className="flex justify-between text-sm">
-                        <span>Total a Pagar:</span>
-                        <span className="font-medium">${totalToPay.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Recibido:</span>
-                        <span>${receivedAmount.toLocaleString()}</span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between font-bold">
-                        <span>Vueltas:</span>
-                        <span className={changeAmount >= 0 ? 'text-green-600' : 'text-red-600'}>
-                          ${changeAmount.toLocaleString()}
-                        </span>
-                      </div>
-                      {changeAmount < 0 && (
-                        <p className="text-sm text-red-600">
-                          Falta: ${Math.abs(changeAmount).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Notes */}
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notas (Opcional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Número de referencia, observaciones..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  </div>
                 )}
-              />
 
-              {/* Payment Summary */}
-              <div className="space-y-2 p-4 bg-green-50 rounded-lg border">
-                <div className="flex items-center gap-2 text-green-800 mb-2">
-                  <Receipt className="h-4 w-4" />
-                  <span className="font-medium">Resumen de Pago</span>
+                {/* Notes */}
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notas (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Número de referencia, observaciones..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Payment Summary */}
+                <div className="space-y-2 p-4 bg-green-50 rounded-lg border">
+                  <div className="flex items-center gap-2 text-green-800 mb-2">
+                    <Receipt className="h-4 w-4" />
+                    <span className="font-medium">Resumen de Pago</span>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Orden:</span>
+                      <span>${orderAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Propina:</span>
+                      <span>${calculatedTipAmount.toLocaleString()}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-bold">
+                      <span>Total Final:</span>
+                      <span>${totalToPay.toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Orden:</span>
-                    <span>${orderAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Propina:</span>
-                    <span>${calculatedTipAmount.toLocaleString()}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total Final:</span>
-                    <span>${totalToPay.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
               </div>
             </div>
 
@@ -495,7 +537,7 @@ export default function PaymentDialog({ order, open, onOpenChange }: PaymentDial
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}
         title="Confirmar Pago"
-        description={`¿Está seguro que desea procesar el pago de $${totalToPay.toLocaleString()} para la Mesa ${order?.table_number}?`}
+        description={`¿Está seguro que desea procesar el pago de $${totalToPay.toLocaleString()} para la Mesa ${orderTableFallBack}?`}
         variant="warning"
         confirmText={`Confirmar Pago $${totalToPay.toLocaleString()}`}
         cancelText="Cancelar"

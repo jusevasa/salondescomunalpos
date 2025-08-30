@@ -15,6 +15,7 @@ interface TransformOrderToInvoiceParams {
   receivedAmount?: number
   changeAmount?: number
   notes?: string
+  printStation?: string
 }
 
 /**
@@ -76,6 +77,7 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     tipAmount,
     receivedAmount = 0,
     changeAmount = 0,
+    printStation = ''
   } = params
 
   // Validar que la orden tenga un ID válido
@@ -205,7 +207,8 @@ export const transformOrderToInvoice = (params: TransformOrderToInvoiceParams): 
     tip_amount: finalTipAmount,
     grand_total: grandTotal,
     payment: paymentInfo,
-    restaurant_info: RESTAURANT_INFO
+    restaurant_info: RESTAURANT_INFO,
+    print_station: printStation
   }
 
   // Debug logging

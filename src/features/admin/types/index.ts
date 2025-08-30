@@ -24,7 +24,7 @@ export interface Order {
   }
   order_items?: DatabaseOrderItem[]
   // Legacy fields for backward compatibility
-  table_number?: number
+  table_number?: number | string
   waiter?: string
   payment_status?: PaymentStatus
 }

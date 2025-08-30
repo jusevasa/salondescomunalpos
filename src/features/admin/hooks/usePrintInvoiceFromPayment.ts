@@ -12,6 +12,7 @@ interface PrintInvoiceParams {
   receivedAmount?: number
   changeAmount?: number
   notes?: string
+  print_station?: string
 }
 
 /**
@@ -29,7 +30,8 @@ export const usePrintInvoiceFromPayment = () => {
         tipPercentage,
         receivedAmount,
         changeAmount,
-        notes
+        notes,
+        print_station
       } = params
 
       // Transformar los datos de la orden a formato de factura
@@ -40,7 +42,8 @@ export const usePrintInvoiceFromPayment = () => {
         tipPercentage,
         receivedAmount,
         changeAmount,
-        notes
+        notes,
+        printStation: print_station
       })
 
       // Enviar a imprimir
