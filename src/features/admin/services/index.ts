@@ -803,9 +803,9 @@ export const reportsService = {
 
           if (author && categoryName) {
             // Calculate commission for this item
-            // If fee is 10, the commission is 10% of the subtotal (1/fee)
-            // Commission = subtotal / fee
-            const itemCommission = fee > 1 ? orderItem.subtotal / fee : 0
+            // If fee is 20, the commission is 20% of the subtotal
+            // Commission = subtotal * (fee / 100)
+            const itemCommission = fee > 0 ? orderItem.subtotal * (fee / 100) : 0
 
             // Get or create author entry
             const existing = authorsMap.get(author) || {
