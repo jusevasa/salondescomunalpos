@@ -17,11 +17,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
-import { CreditCard, Edit3, Eye } from 'lucide-react'
+import { CreditCard, Edit3, Eye, ArrowRightLeft } from 'lucide-react'
 import { useRole } from '@/hooks/useRole'
 import PaymentDialog from './PaymentDialog'
 import OrderEditDialog from './OrderEditDialog'
 import OrderViewDialog from './OrderViewDialog'
+import ChangeTableDialog from './ChangeTableDialog'
 import type { Order } from '../types'
 import { deriveAvatarFallback } from '../utils/defaultValues'
 
@@ -36,9 +37,11 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null)
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null)
   const [selectedOrderForView, setSelectedOrderForView] = useState<Order | null>(null)
+  const [selectedOrderForChangeTable, setSelectedOrderForChangeTable] = useState<Order | null>(null)
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [changeTableDialogOpen, setChangeTableDialogOpen] = useState(false)
   const { isAdmin } = useRole()
 
   const handlePayOrder = (order: Order) => {
@@ -54,6 +57,11 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
   const handleViewOrder = (order: Order) => {
     setSelectedOrderForView(order)
     setViewDialogOpen(true)
+  }
+
+  const handleChangeTable = (order: Order) => {
+    setSelectedOrderForChangeTable(order)
+    setChangeTableDialogOpen(true)
   }
 
   const columnHelper = createColumnHelper<Order>()
@@ -158,20 +166,33 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                 size="sm"
                 onClick={() => handlePayOrder(order)}
                 className="h-8 w-8 p-0"
+                title="Procesar pago"
               >
                 <CreditCard className="h-4 w-4" />
               </Button>
             )}
-            
-            {isAdmin() && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEditOrder(order)}
-                className="h-8 w-8 p-0"
-              >
-                <Edit3 className="h-4 w-4" />
-              </Button>
+
+            {isAdmin() && !isPaid && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleChangeTable(order)}
+                  className="h-8 w-8 p-0"
+                  title="Cambiar mesa"
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditOrder(order)}
+                  className="h-8 w-8 p-0"
+                  title="Editar orden"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         )
@@ -270,15 +291,26 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
                           </Button>
                         )}
                         {isAdmin() && !isPaid && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditOrder(order)}
-                            className="whitespace-nowrap"
-                          >
-                            <Edit3 className="h-4 w-4 mr-1" />
-                            Editar
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleChangeTable(order)}
+                              className="whitespace-nowrap"
+                            >
+                              <ArrowRightLeft className="h-4 w-4 mr-1" />
+                              Mesa
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditOrder(order)}
+                              className="whitespace-nowrap"
+                            >
+                              <Edit3 className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                          </>
                         )}
                       </>
                     )}
@@ -362,6 +394,13 @@ export default function OrdersTable({ orders, isLoading }: OrdersTableProps) {
         order={selectedOrderForView}
         open={viewDialogOpen}
         onOpenChange={setViewDialogOpen}
+      />
+
+      {/* Change Table Dialog */}
+      <ChangeTableDialog
+        order={selectedOrderForChangeTable}
+        open={changeTableDialogOpen}
+        onOpenChange={setChangeTableDialogOpen}
       />
     </>
   )

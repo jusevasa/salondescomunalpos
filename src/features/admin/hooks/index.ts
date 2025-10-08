@@ -208,7 +208,7 @@ export const useUpdateTable = () => {
 
 export const useDeleteTable = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (id: number) => tablesService.deleteTable(id),
     onSuccess: () => {
@@ -217,6 +217,23 @@ export const useDeleteTable = () => {
     },
     onError: (error) => {
       console.error('❌ Error deleting table:', error)
+    }
+  })
+}
+
+export const useChangeOrderTable = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ orderId, newTableId }: { orderId: string | number; newTableId: number }) =>
+      ordersService.updateOrderTable(orderId, newTableId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+      console.log('✅ Order table changed successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Error changing order table:', error)
     }
   })
 }

@@ -138,6 +138,11 @@ export interface OrderItemToAdd {
   notes?: string
 }
 
+export interface ChangeTableRequest {
+  orderId: string | number
+  newTableId: number
+}
+
 // Tables management types
 export interface Table {
   id: number

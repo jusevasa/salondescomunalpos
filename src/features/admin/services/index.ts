@@ -385,6 +385,111 @@ export const ordersService = {
       console.error('Error recalculating order totals:', error)
       throw error
     }
+  },
+
+  async updateOrderTable(orderId: string | number, newTableId: number) {
+    try {
+      const dateTimeNow = format(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: es })
+
+      // Get current order details with table info
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, table_id, status, paid_amount, total_amount')
+        .eq('id', orderId)
+        .single()
+
+      if (orderError) throw orderError
+
+      if (!order) {
+        throw new Error('Orden no encontrada')
+      }
+
+      // Validate order is not paid or cancelled
+      const isPaid = order.paid_amount >= order.total_amount
+      if (order.status === 'paid' || order.status === 'cancelled' || isPaid) {
+        throw new Error('No se puede cambiar la mesa de una orden pagada o cancelada')
+      }
+
+      const oldTableId = order.table_id
+
+      // Validate new table exists and is active
+      const { data: newTable, error: tableError } = await supabase
+        .from('tables')
+        .select('id, number, active')
+        .eq('id', newTableId)
+        .single()
+
+      if (tableError || !newTable) {
+        throw new Error('Mesa de destino no encontrada')
+      }
+
+      if (!newTable.active) {
+        throw new Error('La mesa de destino no está activa')
+      }
+
+      if (oldTableId === newTableId) {
+        throw new Error('La mesa seleccionada es la misma que la actual')
+      }
+
+      // Update order's table_id
+      const { error: updateOrderError } = await supabase
+        .from('orders')
+        .update({
+          table_id: newTableId,
+          updated_at: dateTimeNow
+        })
+        .eq('id', orderId)
+
+      if (updateOrderError) throw updateOrderError
+
+      // Free the old table (set status to true = available)
+      if (oldTableId) {
+        const { error: freeTableError } = await supabase
+          .from('tables')
+          .update({
+            status: true,
+            updated_at: dateTimeNow
+          })
+          .eq('id', oldTableId)
+
+        if (freeTableError) {
+          console.error('Error freeing old table:', freeTableError)
+        }
+      }
+
+      // Occupy the new table (set status to false = occupied)
+      const { error: occupyTableError } = await supabase
+        .from('tables')
+        .update({
+          status: false,
+          updated_at: dateTimeNow
+        })
+        .eq('id', newTableId)
+
+      if (occupyTableError) {
+        console.error('Error occupying new table:', occupyTableError)
+      }
+
+      // Return updated order with new table relation
+      const { data: updatedOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          tables (
+            id,
+            number
+          )
+        `)
+        .eq('id', orderId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      return updatedOrder
+    } catch (error) {
+      console.error('Error updating order table:', error)
+      throw error
+    }
   }
 }
 
